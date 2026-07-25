@@ -1,0 +1,252 @@
+/* ==========================================================================
+   Date Range Picker & react-day-picker Glassmorphism Dark Theme Styling
+   ========================================================================== */
+@import 'react-day-picker/style.css';
+
+/* Default Container Layout */
+.date-range-picker-container {
+  display: flex;
+}
+
+/* Form Variant (FilterSection): Full width stacked */
+.form-group.date-range-picker-container {
+  width: 100%;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Control Variant (PerformanceAnalytics): Inline flex layout on a single row */
+.control-group.date-range-picker-container {
+  width: auto;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.date-range-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* Match FormField variant="form" input styling exactly */
+.form-group .date-range-trigger {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 0.7rem 1rem;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  width: 100%;
+  transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+}
+
+.form-group .date-range-trigger:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.form-group .date-range-trigger:focus-visible,
+.form-group .date-range-trigger--open {
+  border-color: var(--color-accent);
+  background: rgba(0, 0, 0, 0.45);
+  box-shadow: 0 0 12px rgba(0, 242, 254, 0.2);
+  outline: none;
+}
+
+/* Match FormField variant="control" input & select styling exactly */
+.control-group .date-range-trigger {
+  background-color: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  height: 35px;
+  min-width: 220px;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.control-group .date-range-trigger:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.control-group .date-range-trigger:focus-visible,
+.control-group .date-range-trigger--open {
+  border-color: var(--color-accent);
+  background-color: rgba(0, 0, 0, 0.45);
+  outline: none;
+}
+
+.date-range-trigger__icon {
+  color: var(--color-accent, #00f2fe);
+  flex-shrink: 0;
+}
+
+.date-range-trigger__text {
+  flex: 1;
+  text-align: left;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.date-range-trigger__chevron {
+  color: var(--text-muted, #7c7ca3);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.date-range-trigger--open .date-range-trigger__chevron {
+  transform: rotate(180deg);
+}
+
+.date-range-picker-container:has(.date-range-popover) {
+  z-index: 1000;
+}
+
+/* Popover overlay */
+.date-range-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  background: #140d28;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-lg, 16px);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), 0 0 25px rgba(0, 242, 254, 0.2);
+  backdrop-filter: blur(24px);
+  padding: 16px;
+  animation: popoverFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  min-width: 320px;
+}
+
+@keyframes popoverFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Preset Action Bar */
+.date-range-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.preset-btn {
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-muted, #c9c9df);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.preset-btn:hover {
+  background: rgba(0, 242, 254, 0.15);
+  border-color: rgba(0, 242, 254, 0.3);
+  color: #ffffff;
+}
+
+.preset-btn--active {
+  background: linear-gradient(135deg, rgba(0, 242, 254, 0.25), rgba(79, 172, 254, 0.25));
+  border-color: var(--color-accent, #00f2fe);
+  color: #ffffff;
+}
+
+/* Custom react-day-picker Overrides for Dark / Neon Theme */
+.rdp-root {
+  --rdp-accent-color: var(--color-accent, #00f2fe) !important;
+  --rdp-accent-background-color: rgba(0, 242, 254, 0.2) !important;
+  --rdp-background-color: rgba(255, 255, 255, 0.08) !important;
+  --rdp-outline: 2px solid var(--color-accent, #00f2fe) !important;
+  --rdp-outline-selected: 2px solid var(--color-accent, #00f2fe) !important;
+
+  color: var(--text-primary, #f3f3f9);
+  font-family: inherit;
+  margin: 0;
+}
+
+.rdp-caption_label {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #ffffff;
+}
+
+.rdp-nav_button {
+  color: var(--raw-slate-200, #c9c9df);
+  border-radius: 6px;
+}
+
+.rdp-nav_button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.rdp-head_cell {
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--text-muted, #7c7ca3);
+}
+
+.rdp-day {
+  border-radius: 8px;
+  font-size: 0.88rem;
+  transition: all 0.15s ease;
+}
+
+.rdp-day:hover:not(.rdp-outside) {
+  background-color: rgba(0, 242, 254, 0.15);
+  color: #ffffff;
+}
+
+.rdp-selected {
+  font-weight: 600;
+}
+
+.rdp-range_start,
+.rdp-range_end {
+  background-color: var(--color-accent, #00f2fe) !important;
+  color: #05050a !important;
+  border-radius: 8px !important;
+  font-weight: 700;
+}
+
+.rdp-range_middle {
+  background-color: rgba(0, 242, 254, 0.15) !important;
+  color: #ffffff !important;
+  border-radius: 0 !important;
+}
+
+.date-range-popover-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.date-range-popover-footer .btn {
+  padding: 6px 14px;
+  font-size: 0.82rem;
+}

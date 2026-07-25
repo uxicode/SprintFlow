@@ -76,7 +76,7 @@ export function useReportActions() {
       .catch(() => alert('클립보드 복사 중 에러가 발생했습니다.'));
   };
 
-  const handleDownloadReport = async (): Promise<void> => {
+  const handleDownloadReport = async (searchKeyword?: string): Promise<void> => {
     if (isDownloading) return;
 
     let txt = '';
@@ -113,6 +113,7 @@ export function useReportActions() {
           dateStart,
           dateEnd,
           registeredMembers,
+          searchKeyword,
         });
         name = `Weekly_Report_${dateStart}_to_${dateEnd}.md`;
       } finally {

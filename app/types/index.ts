@@ -408,11 +408,15 @@ export interface BuildWeeklyDownloadParams {
   dateStart: string;
   dateEnd: string;
   registeredMembers: string[];
+  searchKeyword?: string;
 }
 
 export interface TicketFormatOptions {
   showStatus?: boolean;
   showUpdate?: boolean;
+  showAssignee?: boolean;
+  showEpic?: boolean;
+  dateFormat?: 'MM/DD' | 'YYYY.MM.DD';
 }
 
 export interface TicketRenderGroupOptions {
@@ -423,6 +427,9 @@ export interface TicketRenderGroupOptions {
   bullet?: string;
   showStatus?: boolean;
   showUpdate?: boolean;
+  showAssignee?: boolean;
+  showEpic?: boolean;
+  dateFormat?: 'MM/DD' | 'YYYY.MM.DD';
 }
 
 export interface JiraSearchIssueFields {

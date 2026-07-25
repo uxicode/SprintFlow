@@ -259,16 +259,30 @@ export class ReportStrategy {
 // 티켓 마크다운 공통 렌더러 (추상화 헬퍼)
 export const TicketMarkdownRenderer = {
   // 개별 티켓 포맷팅
-  format(ticket: Ticket, jiraUrl: string, { showStatus = false, showUpdate = false }: TicketFormatOptions = {}): string {
-    const epicInfo = ticket.epic ? ` *(에픽: ${ticket.epic.key}: ${escapeBrackets(ticket.epic.summary)})*` : '';
+  format(
+    ticket: Ticket,
+    jiraUrl: string,
+    {
+      showStatus = false,
+      showUpdate = false,
+      showAssignee = false,
+      showEpic = false,
+      dateFormat = 'YYYY.MM.DD',
+    }: TicketFormatOptions = {},
+  ): string {
+    const epicInfo = (showEpic && ticket.epic) ? ` *(에픽: ${ticket.epic.key}: ${escapeBrackets(ticket.epic.summary)})*` : '';
     const details = [];
     if (showStatus) details.push(`\`${ticket.status}\``);
     if (showUpdate) {
-      const dueDate = ticket.duedate ? dayjs(ticket.duedate).format('YYYY.MM.DD') : dayjs().format('YYYY.MM.DD');
-      const updatedDate = ticket.updated ? dayjs(ticket.updated).format('YYYY.MM.DD') : '';
+      const formatStr = dateFormat === 'MM/DD' ? 'MM/DD' : 'YYYY.MM.DD';
+      const dueDate = ticket.duedate ? dayjs(ticket.duedate).format(formatStr) : dayjs().format(formatStr);
+      const updatedDate = ticket.updated ? dayjs(ticket.updated).format(formatStr) : '';
       // 갱신일이 기한과 다르면 "기한 > 갱신일"로 심플하게 표시, 같으면 기한만
       const dateStr = updatedDate && updatedDate !== dueDate ? `${dueDate} > 갱신일:${updatedDate}` : dueDate;
       details.push(`기한: ${dateStr}`);
+    }
+    if (showAssignee && ticket.assignee) {
+      details.push(`담당자: ${ticket.assignee}`);
     }
     
     const detailsStr = details.length > 0 ? ` (${details.join(', ')})` : '';
@@ -287,6 +301,9 @@ export const TicketMarkdownRenderer = {
       bullet = '- ',
       showStatus = false,
       showUpdate = false,
+      showAssignee = false,
+      showEpic = false,
+      dateFormat = 'YYYY.MM.DD',
     }: TicketRenderGroupOptions,
   ): string {
     const filtered = tickets.filter(t => getStatusCategory(t.status) === category);
@@ -296,7 +313,7 @@ export const TicketMarkdownRenderer = {
     } else {
       filtered.forEach(t => {
         const itemSymbol = symbol ? `${symbol} ` : '';
-        const formatted = this.format(t, jiraUrl, { showStatus, showUpdate });
+        const formatted = this.format(t, jiraUrl, { showStatus, showUpdate, showAssignee, showEpic, dateFormat });
         md += `${bullet}${itemSymbol}${formatted}\n`;
       });
     }
@@ -367,7 +384,8 @@ export class DailyReportStrategy extends ReportStrategy {
           title: '### 🟢 오늘 완료한 업무 (Done)',
           emptyMessage: '완료된 업무가 없습니다.',
           bullet: '- ',
-          showUpdate: true
+          showUpdate: true,
+          showEpic: true,
         });
         dailyMd += `\n`;
 
@@ -377,7 +395,8 @@ export class DailyReportStrategy extends ReportStrategy {
           title: '### 🔵 현재 진행 중인 업무 (In Progress)',
           emptyMessage: '진행 중인 업무가 없습니다.',
           bullet: '- ',
-          showUpdate: true
+          showUpdate: true,
+          showEpic: true,
         });
         dailyMd += `\n---\n\n`;
       });
@@ -418,45 +437,66 @@ export class WeeklyReportStrategy extends ReportStrategy {
     weeklyMd += `| **대기 중 (To Do)** | ${todoCount}건 | ${total > 0 ? Math.round((todoCount / total) * 100) : 0}% |\n`;
     weeklyMd += `| **합계 (Total)** | **${total}건** | **100%** |\n\n`;
 
-    weeklyMd += `## 📋 3. 팀원별 상세 업무 진행 현황\n\n`;
+    weeklyMd += `## 📋 3. 에픽별 상세 업무 진행 현황\n\n`;
 
-    const members = [...new Set(currList.map(t => t.assignee))];
-    const weeklyVacationOnly = activeWeeklyVacations.filter(v => !members.includes(v));
-    const allWeeklyMembers = [...members, ...weeklyVacationOnly];
+    // 에픽 단위로 그룹화
+    const epicsMap: Record<string, { key: string; summary: string; tickets: Ticket[] }> = {};
+    currList.forEach(t => {
+      const epicKey = t.epic ? t.epic.key : 'NO_EPIC';
+      const epicSummary = t.epic ? t.epic.summary : '에픽 없음 (기타 업무)';
+      if (!epicsMap[epicKey]) {
+        epicsMap[epicKey] = { key: epicKey, summary: epicSummary, tickets: [] };
+      }
+      epicsMap[epicKey].tickets.push(t);
+    });
 
-    if (allWeeklyMembers.length === 0) {
-      weeklyMd += `* 조회 기간 내 상세 티켓 내역이 없습니다.\n`;
+    const sortedEpicKeys = Object.keys(epicsMap).sort((a, b) => {
+      if (a === 'NO_EPIC') return 1;
+      if (b === 'NO_EPIC') return -1;
+      return a.localeCompare(b);
+    });
+
+    if (sortedEpicKeys.length === 0) {
+      weeklyMd += `* 조회 기간 내 상세 티켓 내역이 없습니다.\n\n`;
     } else {
-      allWeeklyMembers.forEach(member => {
-        const isOnVacation = activeWeeklyVacations.includes(member);
-        weeklyMd += `### 👤 담당자: ${member}\n`;
+      sortedEpicKeys.forEach(epicKey => {
+        const epic = epicsMap[epicKey];
+        // To Do 제거: Done 및 In Progress 티켓만 추출
+        const activeTickets = epic.tickets.filter(t => {
+          const cat = getStatusCategory(t.status);
+          return cat === 'Done' || cat === 'In Progress';
+        });
 
-        if (isOnVacation) {
-          const vacDates = Array.isArray(rawEvents) && (rawEvents.length === 0 || typeof rawEvents[0] !== 'string')
-            ? getMemberVacationDates(rawEvents as CalendarEvent[], member, start, end)
-            : '';
-          weeklyMd += `* ${vacDates || '연차 (일정 확인 불가)'}\n`;
-        }
+        if (activeTickets.length > 0) {
+          weeklyMd += epicKey === 'NO_EPIC'
+            ? `### 🏷️ ${epic.summary}\n`
+            : `### 🏷️ 에픽: ${epic.summary} (${epic.key})\n`;
 
-        const memberTickets = currList.filter(t => t.assignee === member);
-        if (memberTickets.length === 0) {
-          if (!isOnVacation) {
-            weeklyMd += `* 진행한 티켓이 없습니다.\n`;
-          }
-        } else {
-          // 세부 분류 항목 정의
-          const ticketCategories: TicketRenderGroupOptions[] = [
-            { category: 'Done', title: '* **완료 (Done)**', emptyMessage: '(없음)', symbol: '✅', bullet: '  * ', showStatus: true, showUpdate: true },
-            { category: 'In Progress', title: '* **진행 중 (In Progress)**', emptyMessage: '(없음)', symbol: '🔄', bullet: '  * ', showStatus: true, showUpdate: true },
-            { category: 'To Do', title: '* **해야할 일 (To Do)**', emptyMessage: '(없음)', symbol: '⏱', bullet: '  * ', showStatus: true, showUpdate: true },
-          ];
-
-          ticketCategories.forEach(config => {
-            weeklyMd += TicketMarkdownRenderer.renderGroup(memberTickets, jiraUrl, config);
+          activeTickets.forEach(t => {
+            const cat = getStatusCategory(t.status);
+            const symbol = cat === 'Done' ? '✅' : '🔄';
+            const formatted = TicketMarkdownRenderer.format(t, jiraUrl, {
+              showStatus: true,
+              showUpdate: true,
+              showAssignee: true,
+              dateFormat: 'MM/DD',
+            });
+            weeklyMd += `* ${symbol} ${formatted}\n`;
           });
+          weeklyMd += `\n`;
         }
-        weeklyMd += `\n`;
       });
+    }
+
+    if (activeWeeklyVacations.length > 0) {
+      weeklyMd += `### 🏝️ 휴가 및 연차 현황\n`;
+      activeWeeklyVacations.forEach(member => {
+        const vacDates = Array.isArray(rawEvents) && (rawEvents.length === 0 || typeof rawEvents[0] !== 'string')
+          ? getMemberVacationDates(rawEvents as CalendarEvent[], member, start, end)
+          : '';
+        weeklyMd += `* ${member}: ${vacDates || '연차'}\n`;
+      });
+      weeklyMd += `\n`;
     }
 
     weeklyMd += `## 🚀 4. 다음 주 주요 계획 및 이슈 사항\n\n`;
@@ -464,15 +504,34 @@ export class WeeklyReportStrategy extends ReportStrategy {
       weeklyMd += `* **마일스톤 점검**: 다음 주 예정된 지라 티켓이 등록되어 있지 않거나 계획을 불러올 수 없습니다.\n`;
       weeklyMd += `* **장애 요인**: 예정된 주요 마일스톤에 지연 요소가 없는지 리스크 사전 점검.\n`;
     } else {
-      const nextMembers = [...new Set(nextList.map(t => t.assignee))];
-      nextMembers.forEach(member => {
-        weeklyMd += `### 👤 담당자: ${member} 계획\n`;
-        const memberNext = nextList.filter(t => t.assignee === member);
-        memberNext.forEach(t => {
+      const nextEpicsMap: Record<string, { key: string; summary: string; tickets: Ticket[] }> = {};
+      nextList.forEach(t => {
+        const epicKey = t.epic ? t.epic.key : 'NO_EPIC';
+        const epicSummary = t.epic ? t.epic.summary : '에픽 없음 (기타 계획)';
+        if (!nextEpicsMap[epicKey]) {
+          nextEpicsMap[epicKey] = { key: epicKey, summary: epicSummary, tickets: [] };
+        }
+        nextEpicsMap[epicKey].tickets.push(t);
+      });
+
+      const nextEpicKeys = Object.keys(nextEpicsMap).sort((a, b) => {
+        if (a === 'NO_EPIC') return 1;
+        if (b === 'NO_EPIC') return -1;
+        return a.localeCompare(b);
+      });
+
+      nextEpicKeys.forEach(epicKey => {
+        const epic = nextEpicsMap[epicKey];
+        weeklyMd += epicKey === 'NO_EPIC'
+          ? `### 🏷️ ${epic.summary}\n`
+          : `### 🏷️ 에픽: ${epic.summary} (${epic.key})\n`;
+
+        epic.tickets.forEach(t => {
           const cat = getStatusCategory(t.status);
           const stateSymbol = cat === 'Done' ? '🟢 [완료예정]' : cat === 'In Progress' ? '🔄 [진행예정]' : '⏱️ [할일]';
-          const epicInfo = t.epic ? ` *(에픽: ${t.epic.key}: ${escapeBrackets(t.epic.summary)})*` : '';
-          weeklyMd += `* ${stateSymbol} [${t.key}: ${escapeBrackets(t.summary)}](${getTicketLink(t.key, jiraUrl)}) (\`${t.status}\`)${epicInfo}\n`;
+          const dueDate = t.duedate ? dayjs(t.duedate).format('MM/DD') : dayjs().format('MM/DD');
+          const assigneeStr = t.assignee ? `, 담당자: ${t.assignee}` : '';
+          weeklyMd += `* ${stateSymbol} [${t.key}: ${escapeBrackets(t.summary)}](${getTicketLink(t.key, jiraUrl)}) (\`${t.status}\`, 기한: ${dueDate}${assigneeStr})\n`;
         });
         weeklyMd += `\n`;
       });
@@ -480,6 +539,147 @@ export class WeeklyReportStrategy extends ReportStrategy {
 
     return weeklyMd;
   }
+}
+
+export function processEpicSearchGroup(sectionText: string, searchKeyword: string): string {
+  if (!searchKeyword || !searchKeyword.trim()) return sectionText;
+
+  const keywords = searchKeyword
+    .split(',')
+    .map(k => k.trim())
+    .filter(k => k.length > 0);
+
+  if (keywords.length === 0) return sectionText;
+
+  const lines = sectionText.split('\n');
+  const headerLines: string[] = [];
+  const epicBlocks: { rawHeader: string; title: string; meta: string; content: string[] }[] = [];
+
+  let currentRawHeader = '';
+  let currentTitle = '';
+  let currentMeta = '';
+  let currentContent: string[] = [];
+
+  lines.forEach(line => {
+    if (line.startsWith('### ')) {
+      if (currentRawHeader) {
+        epicBlocks.push({
+          rawHeader: currentRawHeader,
+          title: currentTitle,
+          meta: currentMeta,
+          content: [...currentContent],
+        });
+      }
+      currentRawHeader = line;
+      currentContent = [];
+
+      let cleanHeader = line.replace(/^###\s*(?:🏷️\s*)?(?:에픽:\s*)?/, '').trim();
+      cleanHeader = cleanHeader.replace(/\s*\([A-Z0-9]+-[0-9]+\)/g, '');
+
+      const dashIdx = cleanHeader.indexOf('—');
+      const colonIdx = cleanHeader.indexOf(':');
+      let meta = '';
+      let title = cleanHeader;
+
+      if (dashIdx !== -1) {
+        title = cleanHeader.slice(0, dashIdx).trim();
+        meta = cleanHeader.slice(dashIdx).trim();
+      } else if (colonIdx !== -1 && /BE:|FE:|MO:|\d+\/\d+/.test(cleanHeader)) {
+        title = cleanHeader.slice(0, colonIdx).trim();
+        meta = cleanHeader.slice(colonIdx).trim();
+      }
+
+      currentTitle = title;
+      currentMeta = meta;
+    } else if (currentRawHeader) {
+      currentContent.push(line);
+    } else {
+      headerLines.push(line);
+    }
+  });
+
+  if (currentRawHeader) {
+    epicBlocks.push({
+      rawHeader: currentRawHeader,
+      title: currentTitle,
+      meta: currentMeta,
+      content: [...currentContent],
+    });
+  }
+
+  const consumedEpicIndices = new Set<number>();
+  let rebuilt = headerLines.join('\n').trimEnd() + '\n\n';
+  let matchedCountTotal = 0;
+
+  keywords.forEach(keyword => {
+    const lowerKeyword = keyword.toLowerCase();
+    const matchedBlocksForKeyword: { block: typeof epicBlocks[0]; index: number }[] = [];
+
+    epicBlocks.forEach((b, idx) => {
+      if (consumedEpicIndices.has(idx)) return;
+      const isMatched = b.title.toLowerCase().includes(lowerKeyword) || b.rawHeader.toLowerCase().includes(lowerKeyword);
+      if (isMatched) {
+        matchedBlocksForKeyword.push({ block: b, index: idx });
+      }
+    });
+
+    if (matchedBlocksForKeyword.length > 0) {
+      matchedCountTotal += matchedBlocksForKeyword.length;
+      rebuilt += `### ${keyword}\n`;
+
+      matchedBlocksForKeyword.forEach(({ block: b, index }) => {
+        consumedEpicIndices.add(index);
+
+        let subTitle = b.title;
+        const subIdx = subTitle.toLowerCase().indexOf(lowerKeyword);
+        if (subIdx !== -1) {
+          subTitle = (subTitle.slice(0, subIdx) + subTitle.slice(subIdx + keyword.length)).trim();
+        }
+        subTitle = subTitle.replace(/^[:\s\-]+|[:\s\-]+$/g, '').trim();
+
+        if (!subTitle) {
+          subTitle = b.title;
+        }
+
+        let cleanMeta = b.meta;
+        if (cleanMeta.startsWith('—')) {
+          cleanMeta = cleanMeta.slice(1).trim();
+        }
+        cleanMeta = cleanMeta.replace(/^:\s*/, '').trim();
+
+        const subHeaderMeta = cleanMeta ? `: ${cleanMeta}` : '';
+        rebuilt += `#### ${subTitle}${subHeaderMeta}\n`;
+        rebuilt += b.content.join('\n').trim() + '\n\n';
+      });
+    }
+  });
+
+  if (matchedCountTotal === 0) {
+    return sectionText;
+  }
+
+  const remainingBlocks = epicBlocks.filter((_, idx) => !consumedEpicIndices.has(idx));
+  if (remainingBlocks.length > 0) {
+    rebuilt += `### 📁 기타 에픽 목록\n\n`;
+    remainingBlocks.forEach(b => {
+      rebuilt += `${b.rawHeader}\n${b.content.join('\n').trim()}\n\n`;
+    });
+  }
+
+  return rebuilt;
+}
+
+export function applyWeeklyReportFilter(weeklyMd: string, searchKeyword: string): string {
+  if (!searchKeyword || !searchKeyword.trim()) return weeklyMd;
+
+  const sections = weeklyMd.split(/(?=^## )/m);
+
+  return sections.map(section => {
+    if (!section.startsWith('## 📋 3.') && !section.startsWith('## 🚀 4.')) {
+      return section;
+    }
+    return processEpicSearchGroup(section, searchKeyword);
+  }).join('');
 }
 
 export class ReportContext {

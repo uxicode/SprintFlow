@@ -3,6 +3,7 @@ import FormField from '../FormField';
 import MemberChipList from '../MemberChipList';
 import JqlPreview from '../JqlPreview';
 import GenieDockWrapper from '../GenieDockWrapper';
+import DateRangePicker from '../DateRangePicker';
 import { useSettingsStore } from '../../stores/settings-store';
 import { useFilterActions } from '../../hooks/use-filter-actions';
 
@@ -66,8 +67,15 @@ export default function FilterSection() {
               onToggle={handleToggleMemberChip}
             />
           </FormField>
-          <FormField variant="form" id="date-start" label="시작일" type="date" value={dateStart} onChange={(e) => setDateStart(e.target.value)} />
-          <FormField variant="form" id="date-end" label="종료일" type="date" value={dateEnd} onChange={(e) => setDateEnd(e.target.value)} />
+          <DateRangePicker
+            label="조회 기간 설정"
+            dateStart={dateStart}
+            dateEnd={dateEnd}
+            onChange={(start, end) => {
+              setDateStart(start);
+              setDateEnd(end);
+            }}
+          />
           <div className="form-actions">
             <button type="submit" disabled={isLoading} className="btn btn-primary">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" className="btn-icon">

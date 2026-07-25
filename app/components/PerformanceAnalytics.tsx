@@ -3,6 +3,7 @@
 import { useMemo, useState, useEffect, type CSSProperties } from 'react';
 import type { Ticket } from '../types';
 import clsx from 'clsx';
+import DateRangePicker from './DateRangePicker';
 import {
   LineChart,
   Line,
@@ -333,27 +334,21 @@ export default function PerformanceAnalytics({
 
           <div className="control-divider control-divider--narrow"></div>
 
-          <FormField
+          <DateRangePicker
             variant="control"
-            id="analytics-date-start"
-            label="시작일:"
-            type="date"
-            value={dateStart}
-            onChange={(e) => setDateStart(e.target.value)}
-          />
-          <FormField
-            variant="control"
-            id="analytics-date-end"
-            label="종료일:"
-            type="date"
-            value={dateEnd}
-            onChange={(e) => setDateEnd(e.target.value)}
+            label="기간:"
+            dateStart={dateStart}
+            dateEnd={dateEnd}
+            onChange={(start, end) => {
+              setDateStart(start);
+              setDateEnd(end);
+            }}
           />
           <FormField
             variant="control"
             as="select"
             id="analytics-period-preset"
-            label="기간:"
+            label=""
             value={periodPreset}
             onChange={(e) => handlePeriodPresetChange(e.target.value)}
           >
