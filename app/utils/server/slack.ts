@@ -54,10 +54,10 @@ export async function sendSlackNotification({
             type: 'mrkdwn',
             text: `*다음주 티켓:*\n${stats.nextTickets}개`,
           },
-          {
-            type: 'mrkdwn',
-            text: `*휴가/연차 일정:*\n${stats.calendarEvents}건`,
-          },
+          // {
+          //   type: 'mrkdwn',
+          //   text: `*휴가/연차 일정:*\n${stats.calendarEvents}건`,
+          // },
         ],
       },
       {
