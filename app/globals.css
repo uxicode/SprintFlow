@@ -98,15 +98,13 @@ body::before {
     radial-gradient(ellipse 54% 46% at 78% 28%, rgba(226, 139, 248, 0.62) 0%, transparent 54%),
     radial-gradient(ellipse 48% 42% at 88% 78%, rgba(170, 27, 91, 0.72) 0%, transparent 52%),
     radial-gradient(ellipse 40% 36% at 32% 18%, rgba(84, 23, 53, 0.45) 0%, transparent 50%),
-    linear-gradient(
-      145deg,
+    linear-gradient(145deg,
       #0f0520 0%,
       #2e1065 22%,
       #6b21a8 42%,
       #a21caf 58%,
       #db2777 76%,
-      #fbcfe8 100%
-    );
+      #fbcfe8 100%);
   background-attachment: fixed;
 }
 
@@ -198,6 +196,7 @@ select {
   background: rgba(255, 255, 255, 0.12);
   color: #fff;
 }
+
 .sidebar-collapse-btn svg {
   transform: rotate(90deg);
 }
@@ -844,6 +843,37 @@ input:checked+.slider:before {
   gap: 1rem;
 }
 
+.report-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.report-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: var(--radius-md);
+  transition: all 0.2s ease;
+}
+
+.toggle-icon {
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.toggle-icon.collapsed {
+  transform: rotate(180deg);
+}
+
+.report-section.collapsed .report-tabs-header {
+  margin-bottom: 0;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
 .tabs {
   display: flex;
   gap: 0.5rem;
@@ -949,7 +979,7 @@ input:checked+.slider:before {
   text-indent: 1rem;
 }
 
-.markdown-preview p + ul {
+.markdown-preview p+ul {
   margin-top: 10px;
 }
 
@@ -2315,8 +2345,15 @@ select.select-input:focus {
 }
 
 @keyframes status-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.4;
+  }
 }
 
 .calendar-auth-status {
@@ -2914,6 +2951,7 @@ select.select-input:focus {
     transform: scale(0.2);
     opacity: 0;
   }
+
   100% {
     transform: scale(1);
     opacity: 1;
@@ -2980,4 +3018,522 @@ select.select-input:focus {
 
 .epic-search-clear-btn:hover {
   color: #fff;
+}
+
+/* ==========================================================================
+   Report & Todo 6:4 Split Container & Google Calendar Style Panel
+   ========================================================================== */
+.report-todo-split-container {
+  display: grid;
+  grid-template-columns: 6fr 4fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 1200px) {
+  .report-todo-split-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+.report-split-item,
+.todo-split-item {
+  min-width: 0;
+}
+
+.todo-calendar-panel {
+  display: flex;
+  flex-direction: column;
+  height: 800px;
+  max-height: 85vh;
+  position: relative;
+  overflow: hidden;
+  padding: 1.25rem;
+}
+
+.todo-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.85rem;
+}
+
+.todo-panel-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.todo-panel-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-heading, #fff);
+  margin: 0;
+}
+
+.todo-date-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.todo-date-arrows {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.btn-icon-xs {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}
+
+.todo-current-date-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-accent, #00f2fe);
+}
+
+/* Timeline grid scroll */
+.todo-timeline-container {
+  flex: 1;
+  overflow-y: auto;
+  position: relative;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(15, 15, 26, 0.5);
+}
+
+.todo-timeline-scroll {
+  position: relative;
+  min-height: 1248px;
+  /* 24 * 52px */
+}
+
+.todo-time-slots {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.todo-hour-slot {
+  height: 52px;
+  display: flex;
+  align-items: flex-start;
+  position: relative;
+  cursor: pointer;
+}
+
+.todo-hour-slot:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.todo-hour-label {
+  width: 80px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+  padding-left: 0.75rem;
+  margin-top: -7px;
+  user-select: none;
+}
+
+.todo-hour-line {
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Event overlay blocks */
+.todo-events-overlay {
+  position: absolute;
+  top: 0;
+  left: 80px;
+  right: 12px;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.todo-event-block {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-radius: 6px;
+  padding: 0.4rem 0.65rem;
+  color: #fff;
+  font-size: 0.82rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  cursor: grab;
+  pointer-events: auto;
+  user-select: none;
+  touch-action: none;
+  transition: box-shadow 0.15s ease;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.todo-event-block.is-dragging {
+  cursor: grabbing;
+  opacity: 0.85;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  z-index: 10;
+}
+
+.todo-event-block--preview {
+  opacity: 0.9;
+  border: 1.5px dashed rgba(255, 255, 255, 0.7);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 10px rgba(255, 255, 255, 0.25);
+  z-index: 8;
+  pointer-events: none;
+  animation: todoPreviewPulse 2s infinite ease-in-out;
+}
+
+@keyframes todoPreviewPulse {
+
+  0%,
+  100% {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 8px rgba(255, 255, 255, 0.2);
+  }
+
+  50% {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 16px rgba(255, 255, 255, 0.4);
+  }
+}
+
+.todo-event-content {
+  pointer-events: auto;
+}
+
+.todo-event-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.todo-event-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  opacity: 0.7;
+  transition: opacity 0.15s ease;
+}
+
+.todo-event-block:hover .todo-event-actions {
+  opacity: 1;
+}
+
+.todo-action-btn {
+  background: rgba(0, 0, 0, 0.35);
+  border: none;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  padding: 0.1rem 0.3rem;
+  cursor: pointer;
+  line-height: 1;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.todo-action-btn:hover {
+  background: rgba(0, 0, 0, 0.65);
+  transform: scale(1.15);
+}
+
+.todo-modal-type-badge {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-accent, #00f2fe);
+}
+
+/* Todo Detail Card Styles */
+.todo-detail-body {
+  padding-top: 0.5rem;
+}
+
+.todo-detail-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.todo-detail-color-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.todo-detail-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.todo-detail-info-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-bottom: 1.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 1rem;
+}
+
+.todo-detail-info-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.todo-detail-icon {
+  font-size: 1rem;
+  width: 20px;
+  text-align: center;
+}
+
+.todo-detail-badge {
+  background: rgba(0, 242, 254, 0.15);
+  color: var(--color-accent, #00f2fe);
+  border: 1px solid rgba(0, 242, 254, 0.3);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 12px;
+}
+
+.todo-event-title {
+  font-weight: 700;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.todo-event-time {
+  font-size: 0.72rem;
+  opacity: 0.9;
+  margin-top: 0.15rem;
+}
+
+/* Resize Handles */
+.todo-resize-handle {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 7px;
+  cursor: ns-resize;
+  z-index: 2;
+}
+
+.todo-resize-handle--top {
+  top: 0;
+}
+
+.todo-resize-handle--bottom {
+  bottom: 0;
+}
+
+.todo-resize-handle:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* Google Calendar Style Modal */
+.todo-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: transparent;
+  backdrop-filter: none;
+  /* -webkit-backdrop-filter: none !important; */
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  pointer-events: auto;
+}
+
+.todo-modal-dialog,
+.todo-modal-dialog.card {
+  width: 100%;
+  max-width: 480px;
+  background: rgba(18, 18, 30, 0.65);
+  backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.75), inset 0 1px 1px rgba(255, 255, 255, 0.25);
+  padding: 1.6rem;
+  position: relative;
+  pointer-events: auto;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.todo-modal-dialog:hover,
+.todo-modal-dialog.card:hover {
+  background: rgba(18, 18, 30, 0.65);
+  backdrop-filter: blur(20px) saturate(180%);
+  border-color: rgba(0, 242, 254, 0.4);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.8), 0 0 24px rgba(0, 242, 254, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.3);
+}
+
+.todo-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.todo-modal-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.todo-input-title {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid var(--color-accent, #00f2fe);
+  color: #fff;
+  font-size: 1.4rem;
+  font-weight: 700;
+  padding: 0.3rem 0;
+  margin-bottom: 1.2rem;
+  outline: none;
+}
+
+.todo-category-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.todo-cat-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.todo-cat-btn.active {
+  background: var(--color-accent, #00f2fe);
+  color: #000;
+  font-weight: 700;
+  border-color: var(--color-accent, #00f2fe);
+}
+
+.todo-form-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.todo-form-icon {
+  font-size: 1.1rem;
+  margin-top: 0.2rem;
+}
+
+.todo-form-field {
+  flex: 1;
+}
+
+.todo-time-inputs {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.todo-date-picker,
+.todo-time-select,
+.todo-form-input,
+.todo-form-textarea {
+  background: rgba(26, 26, 42, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+  color: #ffffff;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.85rem;
+  outline: none;
+}
+
+.todo-time-select option {
+  background-color: #1e1e2e;
+  color: #ffffff;
+}
+
+.todo-date-picker::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}
+
+.todo-form-input,
+.todo-form-textarea {
+  width: 100%;
+}
+
+.todo-color-picker {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.todo-color-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.todo-color-swatch.selected {
+  border-color: #fff;
+  transform: scale(1.15);
+}
+
+.todo-modal-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.todo-footer-right {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.danger-btn {
+  color: #ff4d4f;
+  border-color: rgba(255, 77, 79, 0.3);
 }

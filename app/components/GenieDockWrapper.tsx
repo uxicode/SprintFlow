@@ -7,23 +7,28 @@ import { useUiStore } from '../stores/ui-store';
 import type { DockDirection, DockState, UiStoreSlice } from '../types';
 
 interface GenieDockWrapperProps {
-  sectionId: 'filter' | 'stats';
+  sectionId: 'filter' | 'stats' | 'report';
   children: React.ReactNode;
 }
 
 export default function GenieDockWrapper({ sectionId, children }: GenieDockWrapperProps) {
   const filterDock = useUiStore((s) => (s as UiStoreSlice).filterDock);
   const statsDock = useUiStore((s) => (s as UiStoreSlice).statsDock);
+  const reportDock = useUiStore((s) => (s as UiStoreSlice).reportDock);
   const setFilterDock = useUiStore((s) => (s as UiStoreSlice).setFilterDock);
   const setStatsDock = useUiStore((s) => (s as UiStoreSlice).setStatsDock);
+  const setReportDock = useUiStore((s) => (s as UiStoreSlice).setReportDock);
 
-  const dockState: DockState = sectionId === 'filter' ? filterDock : statsDock;
+  const dockState: DockState =
+    sectionId === 'filter' ? filterDock : sectionId === 'stats' ? statsDock : reportDock;
+
   const updateDock = useCallback(
     (dock: Partial<DockState>) => {
       if (sectionId === 'filter') setFilterDock(dock);
-      else setStatsDock(dock);
+      else if (sectionId === 'stats') setStatsDock(dock);
+      else setReportDock(dock);
     },
-    [sectionId, setFilterDock, setStatsDock]
+    [sectionId, setFilterDock, setStatsDock, setReportDock]
   );
 
   const [isDragging, setIsDragging] = useState(false);
@@ -49,7 +54,10 @@ export default function GenieDockWrapper({ sectionId, children }: GenieDockWrapp
 
   const handlePointerDown = (e: React.PointerEvent) => {
     const target = e.target as HTMLElement;
-    const isHandle = target.closest('.drag-handle') || target.closest('.section-header');
+    const isHandle =
+      target.closest('.drag-handle') ||
+      target.closest('.section-header') ||
+      target.closest('.report-tabs-header');
     if (!isHandle || target.closest('button') || target.closest('input') || target.closest('select')) {
       return;
     }

@@ -8,6 +8,7 @@ import DashboardHeader from '../dashboard/DashboardHeader';
 import FilterSection from '../dashboard/FilterSection';
 import StatsSection from '../dashboard/StatsSection';
 import ReportSection from '../dashboard/ReportSection';
+import TodoCalendarPanel from '../todo/TodoCalendarPanel';
 import DockBar from '../DockBar';
 import LoginScreen from '../auth/LoginScreen';
 import { useUiStore } from '../../stores/ui-store';
@@ -15,11 +16,13 @@ import { useUiStore } from '../../stores/ui-store';
 interface UiStoreSlice {
   isSidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
+  isTodoPanelOpen: boolean;
 }
 
 export default function AppShell() {
   const isSidebarOpen = useUiStore((s) => (s as UiStoreSlice).isSidebarOpen);
   const setSidebarOpen = useUiStore((s) => (s as UiStoreSlice).setSidebarOpen);
+  const isTodoPanelOpen = useUiStore((s) => (s as UiStoreSlice).isTodoPanelOpen);
 
   const [authChecked, setAuthChecked] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -84,6 +87,7 @@ export default function AppShell() {
         <FilterSection />
         <StatsSection />
         <ReportSection />
+        {isTodoPanelOpen && <TodoCalendarPanel />}
       </main>
     </div>
   );

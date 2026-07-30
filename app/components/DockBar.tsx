@@ -8,17 +8,19 @@ import type { DockDirection, UiStoreSlice } from '../types';
 export default function DockBar() {
   const filterDock = useUiStore((s) => (s as UiStoreSlice).filterDock);
   const statsDock = useUiStore((s) => (s as UiStoreSlice).statsDock);
+  const reportDock = useUiStore((s) => (s as UiStoreSlice).reportDock);
   const undockSection = useUiStore((s) => (s as UiStoreSlice).undockSection);
 
   const filterDocked = filterDock.isDocked && !filterDock.isAnimating;
   const statsDocked = statsDock.isDocked && !statsDock.isAnimating;
+  const reportDocked = reportDock.isDocked && !reportDock.isAnimating;
 
-  if (!filterDocked && !statsDocked) {
+  if (!filterDocked && !statsDocked && !reportDocked) {
     return null;
   }
 
   const renderDockItem = (
-    sectionId: 'filter' | 'stats',
+    sectionId: 'filter' | 'stats' | 'report',
     title: string,
     iconSvg: React.ReactNode,
     position: DockDirection
@@ -46,8 +48,9 @@ export default function DockBar() {
       {positions.map((pos) => {
         const hasFilter = filterDocked && filterDock.position === pos;
         const hasStats = statsDocked && statsDock.position === pos;
+        const hasReport = reportDocked && reportDock.position === pos;
 
-        if (!hasFilter && !hasStats) return null;
+        if (!hasFilter && !hasStats && !hasReport) return null;
 
         return (
           <div key={`dock-bar-${pos}`} className={clsx('dock-bar', `dock-bar--${pos}`)}>
@@ -66,6 +69,16 @@ export default function DockBar() {
                 '티켓 상태 분포',
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M18 20V10M12 20V4M6 20v-6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>,
+                pos
+              )}
+            {hasReport &&
+              renderDockItem(
+                'report',
+                '업무 보고서 및 티켓 목록',
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>,
                 pos
               )}

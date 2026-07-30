@@ -7,6 +7,7 @@ export const useUiStore = create<UiStoreSlice>((set, get) => ({
   isSidebarOpen: true,
   isFilterOpen: true,
   isStatsJqlOpen: true,
+  isTodoPanelOpen: false,
   activeTab: 'tab-daily',
   expandedEpics: {},
   connectionStatus: {
@@ -24,12 +25,40 @@ export const useUiStore = create<UiStoreSlice>((set, get) => ({
     position: null,
     isAnimating: false,
   },
+  reportDock: {
+    isDocked: false,
+    position: null,
+    isAnimating: false,
+  },
 
   setMounted: (mounted) => set({ mounted }),
   setConfigLoaded: (isConfigLoaded) => set({ isConfigLoaded }),
   setSidebarOpen: (isSidebarOpen) => set({ isSidebarOpen }),
   setFilterOpen: (isFilterOpen) => set({ isFilterOpen }),
   setStatsJqlOpen: (isStatsJqlOpen) => set({ isStatsJqlOpen }),
+  setTodoPanelOpen: (open: boolean) => {
+    if (open) {
+      set({
+        isTodoPanelOpen: true,
+        reportDock: { isDocked: true, position: 'top', isAnimating: false },
+      });
+    } else {
+      set({ isTodoPanelOpen: false });
+      get().undockSection('report');
+    }
+  },
+  toggleTodoPanel: () => {
+    const { isTodoPanelOpen } = get();
+    if (!isTodoPanelOpen) {
+      set({
+        isTodoPanelOpen: true,
+        reportDock: { isDocked: true, position: 'top', isAnimating: false },
+      });
+    } else {
+      set({ isTodoPanelOpen: false });
+      get().undockSection('report');
+    }
+  },
   setActiveTab: (activeTab: ActiveTab) => set({ activeTab }),
   setConnectionStatus: (connectionStatus: ConnectionStatus) => set({ connectionStatus }),
 
@@ -37,6 +66,8 @@ export const useUiStore = create<UiStoreSlice>((set, get) => ({
     set((state) => ({ filterDock: { ...state.filterDock, ...dock } })),
   setStatsDock: (dock) =>
     set((state) => ({ statsDock: { ...state.statsDock, ...dock } })),
+  setReportDock: (dock) =>
+    set((state) => ({ reportDock: { ...state.reportDock, ...dock } })),
 
   undockSection: (section) => {
     if (section === 'filter') {
@@ -48,13 +79,23 @@ export const useUiStore = create<UiStoreSlice>((set, get) => ({
           filterDock: { isDocked: false, position: null, isAnimating: false },
         });
       }, 400);
-    } else {
+    } else if (section === 'stats') {
       set((state) => ({
         statsDock: { ...state.statsDock, isAnimating: true },
       }));
       setTimeout(() => {
         set({
           statsDock: { isDocked: false, position: null, isAnimating: false },
+        });
+      }, 400);
+    } else {
+      set((state) => ({
+        isTodoPanelOpen: false,
+        reportDock: { ...state.reportDock, isAnimating: true },
+      }));
+      setTimeout(() => {
+        set({
+          reportDock: { isDocked: false, position: null, isAnimating: false },
         });
       }, 400);
     }

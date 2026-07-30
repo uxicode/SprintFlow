@@ -463,28 +463,45 @@ export interface DockState {
   isAnimating: boolean;
 }
 
+export interface TodoItem {
+  id: string;
+  title: string;
+  date: string; // YYYY-MM-DD
+  startHour: number; // e.g. 9.5 (09:30)
+  endHour: number; // e.g. 10.5 (10:30)
+  color?: string;
+  category?: '일정' | '할 일' | '부재 중' | '약속 일정';
+  notes?: string;
+  location?: string;
+}
+
 export interface UiStoreSlice {
   mounted: boolean;
   isConfigLoaded: boolean;
   isSidebarOpen: boolean;
   isFilterOpen: boolean;
   isStatsJqlOpen: boolean;
+  isTodoPanelOpen: boolean;
   activeTab: ActiveTab;
   expandedEpics: Record<string, boolean>;
   connectionStatus: ConnectionStatus;
   filterDock: DockState;
   statsDock: DockState;
+  reportDock: DockState;
   setMounted: (mounted: boolean) => void;
   setConfigLoaded: (loaded: boolean) => void;
   setSidebarOpen: (open: boolean) => void;
   setFilterOpen: (open: boolean) => void;
   setStatsJqlOpen: (open: boolean) => void;
+  setTodoPanelOpen: (open: boolean) => void;
+  toggleTodoPanel: () => void;
   setActiveTab: (tab: ActiveTab) => void;
   setConnectionStatus: (status: ConnectionStatus) => void;
   toggleEpicCollapse: (epicKey: string) => void;
   setFilterDock: (dock: Partial<DockState>) => void;
   setStatsDock: (dock: Partial<DockState>) => void;
-  undockSection: (section: 'filter' | 'stats') => void;
+  setReportDock: (dock: Partial<DockState>) => void;
+  undockSection: (section: 'filter' | 'stats' | 'report') => void;
   dockAllSections: (position?: DockDirection) => void;
 }
 
