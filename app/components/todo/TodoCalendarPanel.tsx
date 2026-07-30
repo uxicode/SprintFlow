@@ -85,18 +85,42 @@ export default function TodoCalendarPanel() {
 
   const gridBodyRef = useRef<HTMLDivElement>(null);
 
-  // 마운트 시 8 AM으로 스크롤 자동 이동
+  // 마운트 시 8 AM으로 스크롤 자동 이동 및 서버 data/todos.json 데이터 불러오기
   useEffect(() => {
     if (gridBodyRef.current) {
       gridBodyRef.current.scrollTop = 8 * HOUR_HEIGHT;
     }
+    const fetchServerTodos = async () => {
+      try {
+        const res = await fetch('/api/todo');
+        const data = await res.json();
+        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+          setItems(data.data);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data.data));
+          }
+        }
+      } catch (err) {
+        console.error('서버 data/todos.json 로드 실패:', err);
+      }
+    };
+    fetchServerTodos();
   }, []);
 
-  // 저장
-  const saveItemsToStorage = useCallback((newItems: TodoItem[]) => {
+  // 저장 (서버 파일 data/todos.json + 로컬 스토리지 동시 저장)
+  const saveItemsToStorage = useCallback(async (newItems: TodoItem[]) => {
     setItems(newItems);
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(newItems));
+    }
+    try {
+      await fetch('/api/todo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newItems),
+      });
+    } catch (err) {
+      console.error('서버 data/todos.json 저장 실패:', err);
     }
   }, []);
 
