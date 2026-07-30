@@ -2,6 +2,7 @@ import { parseMarkdownToHtml } from '../markdown';
 import type { PublishConfluenceParams, PublishConfluenceResult } from '../../types';
 
 interface ConfluenceRequestBody {
+  id?: string;
   type: string;
   title: string;
   space: { key: string };
@@ -11,7 +12,23 @@ interface ConfluenceRequestBody {
       representation: string;
     };
   };
+  version?: {
+    number: number;
+  };
   ancestors?: { id: string }[];
+}
+
+interface ExistingPageSearchResponse {
+  results?: Array<{
+    id: string;
+    title: string;
+    version?: {
+      number: number;
+    };
+    _links?: {
+      webui?: string;
+    };
+  }>;
 }
 
 function normalizeJiraHost(url: string): string {
@@ -41,10 +58,40 @@ export async function publishConfluencePage({
   const cleanedMarkdown = markdown.replace(/ \*\(에픽:.*?\)\*/g, '');
   const htmlContent = parseMarkdownToHtml(cleanedMarkdown);
 
+  const formattedSpaceKey = spaceKey.toUpperCase();
+  const headers = {
+    Authorization: `Basic ${credential}`,
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+  };
+
+  let existingPage: { id: string; versionNumber: number } | null = null;
+  try {
+    const searchUrl = `${cleanUrl}/wiki/rest/api/content?spaceKey=${encodeURIComponent(formattedSpaceKey)}&title=${encodeURIComponent(title)}&expand=version`;
+    const searchRes = await fetch(searchUrl, {
+      method: 'GET',
+      headers,
+      cache: 'no-store',
+    });
+
+    if (searchRes.ok) {
+      const searchData = (await searchRes.json()) as ExistingPageSearchResponse;
+      if (searchData.results && searchData.results.length > 0) {
+        const found = searchData.results[0];
+        existingPage = {
+          id: found.id,
+          versionNumber: found.version?.number ?? 1,
+        };
+      }
+    }
+  } catch (error) {
+    console.warn('[Confluence] 기존 페이지 검색 실패 (신규 생성 시도):', error);
+  }
+
   const requestBody: ConfluenceRequestBody = {
     type: 'page',
     title,
-    space: { key: spaceKey.toUpperCase() },
+    space: { key: formattedSpaceKey },
     body: {
       storage: {
         value: htmlContent,
@@ -57,14 +104,21 @@ export async function publishConfluencePage({
     requestBody.ancestors = [{ id: parentId.trim() }];
   }
 
-  const targetUrl = `${cleanUrl}/wiki/rest/api/content`;
+  let targetUrl = `${cleanUrl}/wiki/rest/api/content`;
+  let method = 'POST';
+
+  if (existingPage) {
+    targetUrl = `${cleanUrl}/wiki/rest/api/content/${existingPage.id}`;
+    method = 'PUT';
+    requestBody.id = existingPage.id;
+    requestBody.version = {
+      number: existingPage.versionNumber + 1,
+    };
+  }
+
   const response = await fetch(targetUrl, {
-    method: 'POST',
-    headers: {
-      Authorization: `Basic ${credential}`,
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-    },
+    method,
+    headers,
     body: JSON.stringify(requestBody),
     cache: 'no-store',
   });
@@ -74,7 +128,7 @@ export async function publishConfluencePage({
     throw new Error(`Confluence API HTTP ${response.status}: ${errText}`);
   }
 
-  const data = await response.json() as { id: string; title: string; _links?: { webui?: string } };
+  const data = (await response.json()) as { id: string; title: string; _links?: { webui?: string } };
   const docLink = `${cleanUrl}/wiki${data._links?.webui || ''}`;
 
   return {

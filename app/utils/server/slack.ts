@@ -1,3 +1,17 @@
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
+function formatDateToKst(dateStr: string): string {
+  if (!dateStr) return '';
+  const d = dayjs(dateStr);
+  if (!d.isValid()) return dateStr;
+  return d.tz('Asia/Seoul').format('YYYY.MM.DD');
+}
+
 interface SlackNotificationParams {
   webhookUrl: string;
   reportTitle: string;
@@ -20,6 +34,9 @@ export async function sendSlackNotification({
     return false;
   }
 
+  const startDateFormatted = formatDateToKst(stats.dateRange.start);
+  const endDateFormatted = formatDateToKst(stats.dateRange.end);
+
   const payload = {
     blocks: [
       {
@@ -39,7 +56,7 @@ export async function sendSlackNotification({
           },
           {
             type: 'mrkdwn',
-            text: `*대상 기간:*\n${stats.dateRange.start} ~ ${stats.dateRange.end}`,
+            text: `*대상 기간:*\n${startDateFormatted} ~ ${endDateFormatted}`,
           },
         ],
       },
