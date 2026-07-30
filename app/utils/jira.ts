@@ -1,4 +1,10 @@
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
 import type {
   CalendarDateField,
   CalendarEvent,
@@ -325,7 +331,7 @@ export const TicketMarkdownRenderer = {
 export class DailyReportStrategy extends ReportStrategy {
   generate(reportParams: ReportParams): string {
     const { currList, nextList, start, end, proj, rawEvents, targetRegs, jiraUrl } = reportParams;
-    const todayStr = dayjs().format('YYYY-MM-DD');
+    const todayStr = dayjs().tz('Asia/Seoul').format('YYYY-MM-DD');
     const activeDailyVacations: string[] = Array.isArray(rawEvents)
       ? (rawEvents.length > 0 && typeof rawEvents[0] === 'string'
         ? rawEvents as string[]
@@ -337,7 +343,7 @@ export class DailyReportStrategy extends ReportStrategy {
 
     let dailyMd = `# 📅 일일 업무 STAND-UP 보고서\n\n`;
     dailyMd += `> **보고 기간**: ${displayStart} ~ ${displayEnd}\n`;
-    dailyMd += `> **생성 일시**: ${dayjs().format('YYYY.MM.DD HH:mm:ss')}\n\n`;
+    dailyMd += `> **생성 일시**: ${dayjs().tz('Asia/Seoul').format('YYYY.MM.DD HH:mm:ss')}\n\n`;
 
     // 진행 중 티켓은 오늘 갱신 여부와 무관하게 항상 노출(현재 작업 현황),
     // 그 외(완료 등)는 오늘 작업했거나 오늘 기한인 경우에만 노출
@@ -425,7 +431,7 @@ export class WeeklyReportStrategy extends ReportStrategy {
 
     let weeklyMd = `# 📊 주간 프로젝트 업무 보고서\n\n`;
     weeklyMd += `## 🗓️ 1. 보고서 요약 개요\n\n`;
-    weeklyMd += `* **작성 일자**: ${dayjs().format('YYYY.MM.DD')}\n`;
+    weeklyMd += `* **작성 일자**: ${dayjs().tz('Asia/Seoul').format('YYYY.MM.DD')}\n`;
     weeklyMd += `* **대상 기간**: ${displayStart} ~ ${displayEnd}\n`;
     weeklyMd += `* **프로젝트 코드**: \`${proj}\`\n\n`;
 
