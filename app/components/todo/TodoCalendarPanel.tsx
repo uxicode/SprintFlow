@@ -93,15 +93,16 @@ export default function TodoCalendarPanel() {
     const fetchServerTodos = async () => {
       try {
         const res = await fetch('/api/todo');
+        if (!res.ok) return;
         const data = await res.json();
-        if (data.success && Array.isArray(data.data)) {
+        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
           setItems(data.data);
           if (typeof window !== 'undefined') {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(data.data));
           }
         }
       } catch (err) {
-        console.error('서버 data/todos.json 로드 실패:', err);
+        console.warn('서버 data/todos.json 로드 미적용 (로컬 스토리지 사용 중):', err);
       }
     };
     fetchServerTodos();
@@ -120,7 +121,7 @@ export default function TodoCalendarPanel() {
         body: JSON.stringify(newItems),
       });
     } catch (err) {
-      console.error('서버 data/todos.json 저장 실패:', err);
+      console.warn('서버 파일 저장 불가 (로컬 스토리지 데이터 유지됨):', err);
     }
   }, []);
 
