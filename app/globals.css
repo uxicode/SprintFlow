@@ -229,6 +229,9 @@ select {
 .sidebar-reveal-btn:hover {
   background-color: rgba(0, 242, 254, 0.15);
 }
+.sidebar-reveal-btn svg {
+  transform: rotate(270deg);
+}
 
 /* 사이드바가 접혔을 때만 열기 버튼 노출 */
 .app-container.sidebar-collapsed .sidebar-reveal-btn {
