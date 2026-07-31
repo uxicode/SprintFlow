@@ -1,1 +1,13 @@
-[]
+[
+  {
+    "id": "todo-1785482155209-cb1o8",
+    "title": "연계정보 연동 확인",
+    "date": "2026-07-31",
+    "startHour": 14,
+    "endHour": 15,
+    "category": "일정",
+    "color": "#0d9488",
+    "notes": "",
+    "location": ""
+  }
+]
