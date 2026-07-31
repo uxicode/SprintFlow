@@ -724,60 +724,112 @@ function parseCategoryInfo(text: string): CategoryInfo | null {
   return { categoryPrefix, subItem };
 }
 
+function isSameCategoryAsEpic(categoryPrefix: string, epicTitle: string): boolean {
+  if (!categoryPrefix || !epicTitle) return false;
+
+  const normCategory = categoryPrefix.replace(/[\[\]]/g, '').trim().toLowerCase();
+  const normEpic = epicTitle.replace(/^[#\s|>]+/, '').replace(/[\[\]]/g, '').trim().toLowerCase();
+
+  if (normCategory === normEpic) return true;
+
+  if (normEpic.includes('>')) {
+    const lastEpicPart = normEpic.split('>').pop()?.trim().toLowerCase();
+    if (lastEpicPart && lastEpicPart === normCategory) return true;
+  }
+
+  if (normEpic.endsWith(normCategory)) return true;
+
+  return false;
+}
+
 function groupCategoryLines(lines: string[]): string {
-  const result: string[] = [];
-  let i = 0;
+  interface ParsedLine {
+    originalIndex: number;
+    line: string;
+    bulletPrefix: string;
+    categoryPrefix: string | null;
+    subItem: string | null;
+    groupKey: string | null;
+    epicTitle: string;
+  }
 
-  while (i < lines.length) {
-    const line = lines[i];
+  let currentEpicTitle = '';
+
+  const parsedLines: ParsedLine[] = lines.map((line, idx) => {
+    const headerMatch = line.match(/^#+\s*(?:>\s*)?(.*)$/);
+    if (headerMatch) {
+      currentEpicTitle = headerMatch[1].trim();
+    }
+
     const bulletMatch = line.match(/^(\s*[*|-]\s*(?:✅|🔄|⏱️|⏱|🟢)?\s*)(.*)$/);
-
     if (!bulletMatch) {
-      result.push(line);
-      i++;
-      continue;
+      return { originalIndex: idx, line, bulletPrefix: '', categoryPrefix: null, subItem: null, groupKey: null, epicTitle: currentEpicTitle };
     }
 
     const bulletPrefix = bulletMatch[1];
     const restText = bulletMatch[2];
-
     const categoryInfo = parseCategoryInfo(restText);
+
     if (!categoryInfo) {
-      result.push(line);
-      i++;
-      continue;
+      return { originalIndex: idx, line, bulletPrefix, categoryPrefix: null, subItem: null, groupKey: null, epicTitle: currentEpicTitle };
     }
 
-    const groupItems: string[] = [categoryInfo.subItem];
-    let j = i + 1;
+    const groupKey = `${bulletPrefix.trim()}|||${categoryInfo.categoryPrefix.trim()}`;
+    return {
+      originalIndex: idx,
+      line,
+      bulletPrefix,
+      categoryPrefix: categoryInfo.categoryPrefix,
+      subItem: categoryInfo.subItem,
+      groupKey,
+      epicTitle: currentEpicTitle,
+    };
+  });
 
-    while (j < lines.length) {
-      const nextLine = lines[j];
-      const nextBulletMatch = nextLine.match(/^(\s*[*|-]\s*(?:✅|🔄|⏱️|⏱|🟢)?\s*)(.*)$/);
-      if (!nextBulletMatch) break;
+  const categoryGroups: Record<string, { bulletPrefix: string; categoryPrefix: string; epicTitle: string; firstIndex: number; subItems: string[] }> = {};
 
-      const nextBulletPrefix = nextBulletMatch[1];
-      const nextRestText = nextBulletMatch[2];
-
-      if (nextBulletPrefix !== bulletPrefix) break;
-
-      const nextCategoryInfo = parseCategoryInfo(nextRestText);
-      if (!nextCategoryInfo || nextCategoryInfo.categoryPrefix !== categoryInfo.categoryPrefix) {
-        break;
+  parsedLines.forEach((item) => {
+    if (item.groupKey && item.categoryPrefix && item.subItem) {
+      if (!categoryGroups[item.groupKey]) {
+        categoryGroups[item.groupKey] = {
+          bulletPrefix: item.bulletPrefix,
+          categoryPrefix: item.categoryPrefix,
+          epicTitle: item.epicTitle,
+          firstIndex: item.originalIndex,
+          subItems: [item.subItem],
+        };
+      } else {
+        categoryGroups[item.groupKey].subItems.push(item.subItem);
       }
+    }
+  });
 
-      groupItems.push(nextCategoryInfo.subItem);
-      j++;
+  const processedKeys = new Set<string>();
+  const result: string[] = [];
+
+  parsedLines.forEach((item) => {
+    if (!item.groupKey) {
+      result.push(item.line);
+      return;
     }
 
-    if (groupItems.length > 1) {
-      result.push(`${bulletPrefix}${categoryInfo.categoryPrefix}: ${groupItems.join(', ')}`);
-      i = j;
-    } else {
-      result.push(line);
-      i++;
+    const group = categoryGroups[item.groupKey];
+    if (!group || group.subItems.length <= 1) {
+      result.push(item.line);
+      return;
     }
-  }
+
+    if (!processedKeys.has(item.groupKey)) {
+      processedKeys.add(item.groupKey);
+
+      const isSameAsEpic = isSameCategoryAsEpic(group.categoryPrefix, group.epicTitle);
+      if (isSameAsEpic) {
+        result.push(`${group.bulletPrefix}${group.subItems.join(', ')}`);
+      } else {
+        result.push(`${group.bulletPrefix}${group.categoryPrefix}: ${group.subItems.join(', ')}`);
+      }
+    }
+  });
 
   return result.join('\n');
 }
