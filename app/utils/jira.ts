@@ -486,11 +486,8 @@ export class WeeklyReportStrategy extends ReportStrategy {
     } else {
       sortedEpicKeys.forEach(epicKey => {
         const epic = epicsMap[epicKey];
-        // To Do 제거: Done 및 In Progress 티켓만 추출
-        const activeTickets = epic.tickets.filter(t => {
-          const cat = getStatusCategory(t.status);
-          return cat === 'Done' || cat === 'In Progress';
-        });
+        // Done, In Progress, To Do 등 검색된 모든 티켓이 누락 없이 에픽 목록에 포함되도록 보완
+        const activeTickets = epic.tickets;
 
         if (activeTickets.length > 0) {
           weeklyMd += epicKey === 'NO_EPIC'
@@ -499,7 +496,7 @@ export class WeeklyReportStrategy extends ReportStrategy {
 
           activeTickets.forEach(t => {
             const cat = getStatusCategory(t.status);
-            const symbol = cat === 'Done' ? '✅' : '🔄';
+            const symbol = cat === 'Done' ? '✅' : cat === 'In Progress' ? '🔄' : '⏱️';
             const formatted = TicketMarkdownRenderer.format(t, jiraUrl, {
               showStatus: true,
               showUpdate: true,
@@ -678,10 +675,6 @@ export function processEpicSearchGroup(sectionText: string, searchKeyword: strin
       });
     }
   });
-
-  if (matchedCountTotal === 0) {
-    return sectionText;
-  }
 
   const remainingBlocks = epicBlocks.filter((_, idx) => !consumedEpicIndices.has(idx));
   if (remainingBlocks.length > 0) {
