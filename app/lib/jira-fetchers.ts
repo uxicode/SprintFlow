@@ -34,10 +34,12 @@ export async function fetchDashboardBundle({
 }: FetchDashboardBundleParams): Promise<DashboardBundle> {
   const { projectKey, teamMembers, dateStart, dateEnd } = filter;
   const { nextStart, nextEnd } = getNextWeekRange(dateStart, dateEnd);
+  const thisYear = dayjs().year();
 
   if (!apiMode) {
     const mockTickets = generateMockTickets(projectKey, teamMembers, dateStart, dateEnd);
     const mockNextTickets = generateMockTickets(projectKey, teamMembers, nextStart, nextEnd);
+    const mockScheduleTickets = generateMockTickets(projectKey, teamMembers, `${thisYear}-01-01`, `${thisYear}-12-31`);
     const vacationMembers = ['이영희'];
     const reports = generateReports({
       currList: mockTickets,
@@ -48,6 +50,7 @@ export async function fetchDashboardBundle({
       rawEvents: vacationMembers,
       targetRegs: registeredMembers,
       jiraUrl: credentials.url,
+      scheduleTickets: mockScheduleTickets,
     });
 
     return {
@@ -62,12 +65,16 @@ export async function fetchDashboardBundle({
 
   const jql = buildJql(projectKey, teamMembers, dateStart, dateEnd);
   const nextJql = buildNextWeekJql(projectKey, teamMembers, dateStart, dateEnd);
+  const scheduleJql = buildScheduleJql(projectKey, teamMembers);
 
   onProgress?.({ dot: 'success', text: '이번 주 데이터 로드 중...' });
   const tickets = await fetchJiraTickets(jql, credentials.url, credentials.email, credentials.token, onProgress);
 
   onProgress?.({ dot: 'success', text: '다음 주 계획 데이터 로드 중...' });
   const nextTickets = await fetchJiraTickets(nextJql, credentials.url, credentials.email, credentials.token, onProgress);
+
+  onProgress?.({ dot: 'success', text: '올해 에픽 스케줄 데이터 로드 중...' });
+  const scheduleTickets = await fetchJiraTickets(scheduleJql, credentials.url, credentials.email, credentials.token, onProgress);
 
   onProgress?.({ dot: 'success', text: '캘린더 연차 데이터 조회 중...' });
   let calendarEvents: DashboardBundle['calendarEvents'] = [];
@@ -105,6 +112,7 @@ export async function fetchDashboardBundle({
     rawEvents: calendarEvents,
     targetRegs: registeredMembers,
     jiraUrl: credentials.url,
+    scheduleTickets,
   });
 
   return {

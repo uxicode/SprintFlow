@@ -415,7 +415,7 @@ export class DailyReportStrategy extends ReportStrategy {
 // 주간 업무 보고서 생성 전략
 export class WeeklyReportStrategy extends ReportStrategy {
   generate(reportParams: ReportParams): string {
-    const { currList, nextList, start, end, proj, rawEvents, targetRegs, jiraUrl } = reportParams;
+    const { currList, nextList, start, end, proj, rawEvents, targetRegs, jiraUrl, scheduleTickets } = reportParams;
     const activeWeeklyVacations: string[] = Array.isArray(rawEvents)
       ? (rawEvents.length > 0 && typeof rawEvents[0] === 'string'
         ? rawEvents as string[]
@@ -451,7 +451,12 @@ export class WeeklyReportStrategy extends ReportStrategy {
     weeklyMd += `| **대기 중 (To Do)** | ${todoCount}건 | ${total > 0 ? Math.round((todoCount / total) * 100) : 0}% |\n`;
     weeklyMd += `| **합계 (Total)** | **${total}건** | **100%** |\n\n`;
 
-    const epicSchedules = buildEpicScheduleData(filteredCurrList);
+    // 에픽별 진행 현황은 올해 전체 누적 데이터(scheduleTickets) 기준으로 측정
+    const progressSourceTickets = (scheduleTickets && scheduleTickets.length > 0)
+      ? scheduleTickets
+      : filteredCurrList;
+
+    const epicSchedules = buildEpicScheduleData(progressSourceTickets);
     const epicSummaryTable = buildEpicSummaryTable(epicSchedules);
     if (epicSummaryTable) {
       weeklyMd += `${epicSummaryTable.trim()}\n\n`;

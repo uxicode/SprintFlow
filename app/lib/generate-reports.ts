@@ -10,6 +10,7 @@ export function generateReports({
   rawEvents,
   targetRegs,
   jiraUrl,
+  scheduleTickets,
 }: ReportParams): GeneratedReports {
   const reportParams: ReportParams = {
     currList,
@@ -20,6 +21,7 @@ export function generateReports({
     rawEvents,
     targetRegs,
     jiraUrl,
+    scheduleTickets,
   };
 
   const dailyContext = new ReportContext(new DailyReportStrategy());

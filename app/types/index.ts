@@ -212,6 +212,7 @@ export interface ReportParams {
   rawEvents: CalendarEvent[] | string[];
   targetRegs: string[];
   jiraUrl: string;
+  scheduleTickets?: Ticket[];
 }
 
 export interface CalendarFetchResult {
