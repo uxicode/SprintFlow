@@ -10,7 +10,7 @@ export function buildJql(
   return new JqlQueryBuilder()
     .setProject(projectKey)
     .setAssignees(teamMembers)
-    .setDateRange(dateStart, dateEnd, 'updated')
+    .setDateRange(dateStart, dateEnd, 'duedate')
     .build();
 }
 
@@ -29,7 +29,7 @@ export function buildNextWeekJql(
   return new JqlQueryBuilder()
     .setProject(projectKey)
     .setAssignees(teamMembers)
-    .setDateRange(nextStartStr, nextEndStr, 'updated')
+    .setDateRange(nextStartStr, nextEndStr, 'duedate')
     .build();
 }
 

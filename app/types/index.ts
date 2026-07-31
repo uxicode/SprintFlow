@@ -409,6 +409,7 @@ export interface BuildWeeklyDownloadParams {
   dateEnd: string;
   registeredMembers: string[];
   searchKeyword?: string;
+  tagFilters?: WeeklyReportTagFilters;
 }
 
 export interface TicketFormatOptions {
@@ -577,4 +578,12 @@ export interface ReportStoreSlice {
     calendarEvents: CalendarEvent[] | string[];
   }) => void;
   resetReports: () => void;
+}
+
+export interface WeeklyReportTagFilters {
+  hideTicketNumber: boolean;
+  hidePosition: boolean;
+  hideDueDate: boolean;
+  hideAssignee: boolean;
+  groupCategory: boolean;
 }

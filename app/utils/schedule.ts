@@ -123,3 +123,75 @@ export function buildGanttData(epicScheduleData: EpicScheduleItem[]): GanttData 
     dateMarkers,
   };
 }
+
+function formatEpicDate(dateStr: string | null | undefined): string | null {
+  if (!dateStr) return null;
+  const formatted = dayjs(dateStr);
+  return formatted.isValid() ? `${formatted.month() + 1}/${formatted.date()}` : null;
+}
+
+export function getEpicDueDateRange(item: EpicScheduleItem | undefined): string | null {
+  if (!item || item.key === 'NO_EPIC') return null;
+  const dueDates = item.tickets.map(t => t.duedate).filter((d): d is string => Boolean(d));
+  if (dueDates.length === 0) return null;
+
+  const sorted = [...dueDates].sort();
+  const start = formatEpicDate(sorted[0]);
+  const end = formatEpicDate(sorted[sorted.length - 1]);
+  if (start && end) {
+    return start === end ? start : `${start} ~${end}`;
+  }
+  return start || end;
+}
+
+export function formatGroupProgressBadge(
+  label: string,
+  progress: number | null,
+  doneCount: number,
+  totalCount: number,
+): string | null {
+  if (progress === null || totalCount === 0) return null;
+  return `${progress}% (${doneCount}/${totalCount})`;
+}
+
+export function buildEpicSummaryTable(epicSchedules: EpicScheduleItem[]): string {
+  if (!epicSchedules || epicSchedules.length === 0) return '';
+
+  const targetEpics = epicSchedules.filter(item => item.key !== 'NO_EPIC' || epicSchedules.length === 1);
+  if (targetEpics.length === 0) return '';
+
+  const cleanCell = (str: string | null | undefined): string => {
+    if (!str) return '-';
+    return str.replace(/\|/g, '&#124;').replace(/\r?\n/g, ' ').trim();
+  };
+
+  let table = `### 📊 에픽별 진행 현황\n\n`;
+  table += `| 에픽 | 마감일 | 백엔드 | 프론트 | 모바일 | 총 진행률 |\n`;
+  table += `|---|---|---|---|---|---|\n`;
+
+  targetEpics.forEach(item => {
+    const rawTitle = item.summary || item.key;
+    const epicTitle = cleanCell(rawTitle);
+    const dateRange = cleanCell(getEpicDueDateRange(item));
+
+    const beStr = cleanCell(formatGroupProgressBadge('BE', item.beProgress, item.beDoneCount, item.beCount));
+    const feStr = cleanCell(formatGroupProgressBadge('FE', item.feProgress, item.feDoneCount, item.feCount));
+    const moStr = cleanCell(formatGroupProgressBadge('MO', item.moProgress, item.moDoneCount, item.moCount));
+
+    const totalCount = item.tickets.length;
+    const totalDone = item.tickets.filter(t => getStatusCategory(t.status) === 'Done').length;
+    const totalProgress = totalCount > 0 ? Math.round((totalDone / totalCount) * 100) : 0;
+    const totalStr = cleanCell(totalCount > 0 ? `${totalProgress}% (${totalDone}/${totalCount})` : '-');
+
+    table += `| **${epicTitle}** | ${dateRange} | ${beStr} | ${feStr} | ${moStr} | **${totalStr}** |\n`;
+  });
+
+  table += `\n`;
+  return table;
+}
+
+export function formatEpicScheduleMeta(meta: EpicScheduleItem | undefined): string {
+  if (!meta) return '';
+  const dateRange = getEpicDueDateRange(meta);
+  return dateRange ? `: ${dateRange}` : '';
+}

@@ -14,7 +14,9 @@ import type {
   TicketFormatOptions,
   TicketRenderGroupOptions,
   VacationParseResult,
+  WeeklyReportTagFilters,
 } from '../types';
+import { buildEpicScheduleData, buildEpicSummaryTable } from './schedule';
 
 // 티켓 제목 내 대괄호 [ ]를 ( )로 안전하게 변경하여 마크다운 링크 파서 깨짐 현상 예방
 export const escapeBrackets = (text: string): string => {
@@ -240,15 +242,17 @@ export class JqlQueryBuilder {
 
     // 날짜 범위가 있을 경우
     if (this.startDate && this.endDate) {
-      if (this.dateField === 'updated') {
-        jql += ` AND ((updated >= "${this.startDate}" AND updated <= "${this.endDate} 23:59") OR (duedate >= "${this.startDate}" AND duedate <= "${this.endDate}"))`;
+      if (this.dateField === 'duedate') {
+        jql += ` AND duedate >= "${this.startDate}" AND duedate <= "${this.endDate}"`;
+      } else if (this.dateField === 'updated') {
+        jql += ` AND updated >= "${this.startDate}" AND updated <= "${this.endDate} 23:59"`;
       } else {
-        jql += ` AND ${this.dateField} >= "${this.startDate}" AND ${this.dateField} <= "${this.endDate} 23:59"`;
+        jql += ` AND ${this.dateField} >= "${this.startDate}" AND ${this.dateField} <= "${this.endDate}"`;
       }
     } else if (this.startDate) {
       jql += ` AND ${this.dateField} >= "${this.startDate}"`;
     } else if (this.endDate) {
-      jql += ` AND ${this.dateField} <= "${this.endDate} 23:59"`;
+      jql += ` AND ${this.dateField} <= "${this.endDate}"`;
     }
     jql += ` ORDER BY ${this.orderByField} ${this.orderDirection}`;
     return jql;
@@ -282,10 +286,7 @@ export const TicketMarkdownRenderer = {
     if (showUpdate) {
       const formatStr = dateFormat === 'MM/DD' ? 'MM/DD' : 'YYYY.MM.DD';
       const dueDate = ticket.duedate ? dayjs(ticket.duedate).format(formatStr) : dayjs().format(formatStr);
-      const updatedDate = ticket.updated ? dayjs(ticket.updated).format(formatStr) : '';
-      // 갱신일이 기한과 다르면 "기한 > 갱신일"로 심플하게 표시, 같으면 기한만
-      const dateStr = updatedDate && updatedDate !== dueDate ? `${dueDate} > 갱신일:${updatedDate}` : dueDate;
-      details.push(`기한: ${dateStr}`);
+      details.push(`기한: ${dueDate}`);
     }
     if (showAssignee && ticket.assignee) {
       details.push(`담당자: ${ticket.assignee}`);
@@ -421,9 +422,16 @@ export class WeeklyReportStrategy extends ReportStrategy {
         : getVacationMembers(rawEvents, start, end, targetRegs))
       : [];
 
-    const total = currList.length;
-    const completedCount = currList.filter(t => getStatusCategory(t.status) === 'Done').length;
-    const progressingCount = currList.filter(t => getStatusCategory(t.status) === 'In Progress').length;
+    // 기한(duedate)이 지정된 경우, 기한 날짜가 선택된 start ~ end 범위에 속하는 티켓만 엄격 선별
+    const filteredCurrList = currList.filter(t => {
+      if (!t.duedate) return true;
+      const due = dayjs(t.duedate).format('YYYY-MM-DD');
+      return due >= start && due <= end;
+    });
+
+    const total = filteredCurrList.length;
+    const completedCount = filteredCurrList.filter(t => getStatusCategory(t.status) === 'Done').length;
+    const progressingCount = filteredCurrList.filter(t => getStatusCategory(t.status) === 'In Progress').length;
     const todoCount = total - completedCount - progressingCount;
 
     const displayStart = dayjs(start).format('YYYY.MM.DD');
@@ -437,17 +445,23 @@ export class WeeklyReportStrategy extends ReportStrategy {
 
     weeklyMd += `### 📈 2. 이번 주 진행 상태 메트릭스\n\n`;
     weeklyMd += `| 티켓 상태 | 건수 | 완료율 / 비율 |\n`;
-    weeklyMd += `| :--- | :---: | :---: |\n`;
+    weeklyMd += `|---|---|---|\n`;
     weeklyMd += `| **완료 (Done/Resolved)** | ${completedCount}건 | ${total > 0 ? Math.round((completedCount / total) * 100) : 0}% |\n`;
     weeklyMd += `| **진행 중 (In Progress)** | ${progressingCount}건 | ${total > 0 ? Math.round((progressingCount / total) * 100) : 0}% |\n`;
     weeklyMd += `| **대기 중 (To Do)** | ${todoCount}건 | ${total > 0 ? Math.round((todoCount / total) * 100) : 0}% |\n`;
     weeklyMd += `| **합계 (Total)** | **${total}건** | **100%** |\n\n`;
 
+    const epicSchedules = buildEpicScheduleData(filteredCurrList);
+    const epicSummaryTable = buildEpicSummaryTable(epicSchedules);
+    if (epicSummaryTable) {
+      weeklyMd += `${epicSummaryTable.trim()}\n\n`;
+    }
+
     weeklyMd += `## 📋 3. 에픽별 상세 업무 진행 현황\n\n`;
 
     // 에픽 단위로 그룹화
     const epicsMap: Record<string, { key: string; summary: string; tickets: Ticket[] }> = {};
-    currList.forEach(t => {
+    filteredCurrList.forEach(t => {
       const epicKey = t.epic ? t.epic.key : 'NO_EPIC';
       const epicSummary = t.epic ? t.epic.summary : '에픽 없음 (기타 업무)';
       if (!epicsMap[epicKey]) {
@@ -675,17 +689,201 @@ export function processEpicSearchGroup(sectionText: string, searchKeyword: strin
   return rebuilt;
 }
 
-export function applyWeeklyReportFilter(weeklyMd: string, searchKeyword: string): string {
-  if (!searchKeyword || !searchKeyword.trim()) return weeklyMd;
+interface CategoryInfo {
+  categoryPrefix: string;
+  subItem: string;
+}
 
-  const sections = weeklyMd.split(/(?=^## )/m);
+function parseCategoryInfo(text: string): CategoryInfo | null {
+  if (!text || !text.includes('>')) return null;
 
-  return sections.map(section => {
-    if (!section.startsWith('## 📋 3.') && !section.startsWith('## 🚀 4.')) {
-      return section;
+  // Case 1: 마크다운 링크 형태 [대시보드 > 주요 운영 지표 > 검사 수행 현황](url) (완료)
+  const linkMatch = text.match(/^\[(.*?)\]\((.*?)\)(.*)$/);
+  if (linkMatch) {
+    const anchorText = linkMatch[1];
+    const url = linkMatch[2];
+    const restSuffix = linkMatch[3];
+
+    if (!anchorText.includes('>')) return null;
+
+    const lastGtIdx = anchorText.lastIndexOf('>');
+    const categoryPrefix = anchorText.substring(0, lastGtIdx).trim();
+    const detailTitle = anchorText.substring(lastGtIdx + 1).trim();
+
+    const subItem = `[${detailTitle}](${url})${restSuffix}`;
+    return { categoryPrefix, subItem };
+  }
+
+  // Case 2: 일반 텍스트 형태 대시보드 > 주요 운영 지표 > 검사 수행 현황 영역 (완료)
+  const lastGtIdx = text.lastIndexOf('>');
+  if (lastGtIdx === -1) return null;
+
+  const categoryPrefix = text.substring(0, lastGtIdx).trim();
+  const subItem = text.substring(lastGtIdx + 1).trim();
+
+  return { categoryPrefix, subItem };
+}
+
+function groupCategoryLines(lines: string[]): string {
+  const result: string[] = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+    const bulletMatch = line.match(/^(\s*[*|-]\s*(?:✅|🔄|⏱️|⏱|🟢)?\s*)(.*)$/);
+
+    if (!bulletMatch) {
+      result.push(line);
+      i++;
+      continue;
     }
-    return processEpicSearchGroup(section, searchKeyword);
-  }).join('');
+
+    const bulletPrefix = bulletMatch[1];
+    const restText = bulletMatch[2];
+
+    const categoryInfo = parseCategoryInfo(restText);
+    if (!categoryInfo) {
+      result.push(line);
+      i++;
+      continue;
+    }
+
+    const groupItems: string[] = [categoryInfo.subItem];
+    let j = i + 1;
+
+    while (j < lines.length) {
+      const nextLine = lines[j];
+      const nextBulletMatch = nextLine.match(/^(\s*[*|-]\s*(?:✅|🔄|⏱️|⏱|🟢)?\s*)(.*)$/);
+      if (!nextBulletMatch) break;
+
+      const nextBulletPrefix = nextBulletMatch[1];
+      const nextRestText = nextBulletMatch[2];
+
+      if (nextBulletPrefix !== bulletPrefix) break;
+
+      const nextCategoryInfo = parseCategoryInfo(nextRestText);
+      if (!nextCategoryInfo || nextCategoryInfo.categoryPrefix !== categoryInfo.categoryPrefix) {
+        break;
+      }
+
+      groupItems.push(nextCategoryInfo.subItem);
+      j++;
+    }
+
+    if (groupItems.length > 1) {
+      result.push(`${bulletPrefix}${categoryInfo.categoryPrefix}: ${groupItems.join(', ')}`);
+      i = j;
+    } else {
+      result.push(line);
+      i++;
+    }
+  }
+
+  return result.join('\n');
+}
+
+export function applyWeeklyReportTagFilters(
+  weeklyMd: string,
+  tagFilters?: WeeklyReportTagFilters
+): string {
+  if (
+    !tagFilters ||
+    (!tagFilters.hideTicketNumber &&
+      !tagFilters.hidePosition &&
+      !tagFilters.hideDueDate &&
+      !tagFilters.hideAssignee &&
+      !tagFilters.groupCategory)
+  ) {
+    return weeklyMd;
+  }
+
+  const { hideTicketNumber, hidePosition, hideDueDate, hideAssignee, groupCategory } = tagFilters;
+  const lines = weeklyMd.split('\n');
+
+  // 1. 라인 단위 텍스트 요법(티켓넘버, 포지션, 기한, 담당자) 숨김 처리 (단, 표 '|' 라인은 100% 유지)
+  const processedLines = lines.map((line) => {
+    if (line.trim().startsWith('|')) {
+      return line;
+    }
+
+    if (!line || (!line.includes('[') && !line.includes(':') && !line.includes('('))) {
+      return line;
+    }
+
+    let result = line;
+
+    // 1) 티켓 넘버 제거 (e.g. "DI26-625: ", "[DI26-625: ")
+    if (hideTicketNumber) {
+      result = result.replace(/(\[|\b)([A-Za-z0-9]+-\d+:\s*)/g, '$1');
+    }
+
+    // 2) 포지션 제거 (e.g. "(FE) ", "(BE) ", "(Design) ")
+    if (hidePosition) {
+      result = result.replace(/\((FE|BE|DE|Design|QA|DevOps|PM|PO|iOS|Android|Fullstack|Publishing|Markup|Frontend|Backend|[A-Z]{2,6})\)\s*/gi, '');
+    }
+
+    // 3) 기한 제거 (e.g. ", 기한: 08/04 > 갱신일:07/31" 또는 "기한: 08/04 > 갱신일:07/31, " 또는 "기한: 08/04")
+    if (hideDueDate) {
+      result = result.replace(/,\s*기한:\s*[^,)]+|기한:\s*[^,)]+\s*,?/g, '');
+    }
+
+    // 4) 담당자 제거 (e.g. ", 담당자: 박예린" 또는 "담당자: 박예린, " 또는 "담당자: 박예린")
+    if (hideAssignee) {
+      result = result.replace(/,\s*담당자:\s*[^,)]+|담당자:\s*[^,)]+\s*,?/g, '');
+    }
+
+    // 5) 괄호 및 쉼표 부작용 정리
+    result = result.replace(/\(\s*,\s*/g, '(');
+    result = result.replace(/,\s*\)/g, ')');
+    result = result.replace(/,\s*,/g, ',');
+    result = result.replace(/\(\s*\)/g, '');
+
+    return result;
+  });
+
+  const processedText = processedLines.join('\n');
+
+  if (!groupCategory) {
+    return processedText;
+  }
+
+  // 2. 카테고리 중복 묶기 (오직 Section 3 [에픽별 상세 업무] 및 Section 4 [다음 주 주요 계획] 티켓에만 독점 적용)
+  const sections = processedText.split(/(?=^## )/m);
+  return sections
+    .map((section) => {
+      if (section.startsWith('## 📋 3.') || section.startsWith('## 🚀 4.')) {
+        const secLines = section.split('\n');
+        return groupCategoryLines(secLines);
+      }
+      return section;
+    })
+    .join('');
+}
+
+export function applyWeeklyReportFilter(
+  weeklyMd: string,
+  searchKeyword: string,
+  tagFilters?: WeeklyReportTagFilters
+): string {
+  let result = weeklyMd;
+
+  if (searchKeyword && searchKeyword.trim()) {
+    const sections = result.split(/(?=^## )/m);
+    result = sections
+      .map(section => {
+        if (!section.startsWith('## 📋 3.') && !section.startsWith('## 🚀 4.')) {
+          return section;
+        }
+        return processEpicSearchGroup(section, searchKeyword);
+      })
+      .join('');
+  }
+
+  if (tagFilters) {
+    result = applyWeeklyReportTagFilters(result, tagFilters);
+  }
+
+  return result;
 }
 
 export class ReportContext {

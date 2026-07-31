@@ -43,8 +43,8 @@
   --color-danger: var(--raw-neon-pink);
 
   /* Fonts */
-  --font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-logo: 'Outfit', sans-serif;
+  --font-family: 'Plus Jakarta Sans', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Segoe UI', Roboto, 'Malgun Gothic', sans-serif;
+  --font-logo: 'Outfit', 'Plus Jakarta Sans', 'Pretendard', sans-serif;
 
   /* Shadows */
   --shadow-soft: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
@@ -946,6 +946,7 @@ input:checked+.slider:before {
   min-height: 400px;
   max-height: 800px;
   overflow-y: auto;
+  overflow-x: auto;
   font-family: inherit;
 }
 
@@ -1008,9 +1009,11 @@ input:checked+.slider:before {
 
 .markdown-preview table {
   width: 100%;
+  max-width: 100%;
   border-collapse: collapse;
   margin-bottom: 1.5rem;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
+  word-break: break-word;
 }
 
 .markdown-preview th,
@@ -1018,6 +1021,7 @@ input:checked+.slider:before {
   border: 1px solid var(--border-color);
   padding: 0.6rem 0.8rem;
   text-align: left;
+  word-break: break-word;
 }
 
 .markdown-preview th {
@@ -3021,6 +3025,91 @@ select.select-input:focus {
 
 .epic-search-clear-btn:hover {
   color: #fff;
+  opacity: 1;
+}
+
+/* 주간 보고서 태그 칩 필터 컨트롤 */
+.weekly-filter-controls {
+  padding: 0.75rem 1.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.weekly-filter-controls .epic-search-bar-container {
+  padding: 0;
+  background: transparent;
+  border-bottom: none;
+}
+
+.tag-filter-chips-container {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.tag-filter-chips-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted, rgba(255, 255, 255, 0.65));
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.tag-chips-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.28rem 0.7rem;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+
+.tag-chip:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.tag-chip.active {
+  background: rgba(0, 242, 254, 0.18);
+  border-color: var(--color-accent, #00f2fe);
+  color: #00f2fe;
+  font-weight: 600;
+  box-shadow: 0 0 10px rgba(0, 242, 254, 0.2);
+}
+
+.tag-chip .chip-icon {
+  font-size: 0.82rem;
+}
+
+.tag-chip .chip-badge {
+  font-size: 0.68rem;
+  padding: 0.05rem 0.35rem;
+  border-radius: 10px;
+  background: var(--color-accent, #00f2fe);
+  color: #0a0c16;
+  font-weight: 700;
+  margin-left: 0.15rem;
 }
 
 /* ==========================================================================
@@ -3431,8 +3520,10 @@ select.select-input:focus {
   border: none;
   border-bottom: 2px solid var(--color-accent, #00f2fe);
   color: #fff;
+  font-family: var(--font-family);
   font-size: 1.4rem;
   font-weight: 700;
+  line-height: 1.4;
   padding: 0.3rem 0;
   margin-bottom: 1.2rem;
   outline: none;

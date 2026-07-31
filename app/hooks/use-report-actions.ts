@@ -5,6 +5,7 @@ import dayjs from 'dayjs';
 import { useQueryClient } from '@tanstack/react-query';
 import { parseMarkdownToHtml } from '../utils/markdown';
 import { buildWeeklyDownloadMarkdown } from '../utils/reportDownload';
+import { applyWeeklyReportFilter } from '../utils/jira';
 import { fetchScheduleBundle } from '../lib/jira-fetchers';
 import { queryKeys } from '../lib/query-keys';
 import { useDashboardData } from './use-dashboard-data';
@@ -14,7 +15,7 @@ import {
   useTypedSettingsStore,
   useTypedUiStore,
 } from './typed-stores';
-import type { ActiveTab } from '../types';
+import type { ActiveTab, WeeklyReportTagFilters } from '../types';
 
 interface ConfluencePublishRequestBody {
   type: string;
@@ -56,12 +57,13 @@ export function useReportActions() {
     setActiveTab(tab);
   };
 
-  const handleCopyReport = (): void => {
+  const handleCopyReport = (searchKeyword?: string, tagFilters?: WeeklyReportTagFilters): void => {
     if (isDownloading) return;
     let txt = '';
     if (activeTab === 'tab-daily') txt = dailyReportMd;
-    else if (activeTab === 'tab-weekly') txt = weeklyReportMd;
-    else {
+    else if (activeTab === 'tab-weekly') {
+      txt = applyWeeklyReportFilter(weeklyReportMd, searchKeyword || '', tagFilters);
+    } else {
       alert('복사할 마크다운 보고서 탭을 선택해 주세요.');
       return;
     }
@@ -76,7 +78,7 @@ export function useReportActions() {
       .catch(() => alert('클립보드 복사 중 에러가 발생했습니다.'));
   };
 
-  const handleDownloadReport = async (searchKeyword?: string): Promise<void> => {
+  const handleDownloadReport = async (searchKeyword?: string, tagFilters?: WeeklyReportTagFilters): Promise<void> => {
     if (isDownloading) return;
 
     let txt = '';
@@ -114,6 +116,7 @@ export function useReportActions() {
           dateEnd,
           registeredMembers,
           searchKeyword,
+          tagFilters,
         });
         name = `Weekly_Report_${dateStart}_to_${dateEnd}.md`;
       } finally {
@@ -141,7 +144,7 @@ export function useReportActions() {
     URL.revokeObjectURL(blobUrl);
   };
 
-  const handlePublishConfluence = async (): Promise<void> => {
+  const handlePublishConfluence = async (searchKeyword?: string, tagFilters?: WeeklyReportTagFilters): Promise<void> => {
     if (isDownloading) return;
     let reportText = '';
     let reportTitle = '';
@@ -150,7 +153,7 @@ export function useReportActions() {
       reportText = dailyReportMd;
       reportTitle = `📅 [일일업무] ${dayjs().format('YYYY.MM.DD')}`;
     } else if (activeTab === 'tab-weekly') {
-      reportText = weeklyReportMd;
+      reportText = applyWeeklyReportFilter(weeklyReportMd, searchKeyword || '', tagFilters);
       reportTitle = `📊 [주간업무] ${dayjs(dateStart).format('YYYY.MM.DD')} ~ ${dayjs(dateEnd).format('YYYY.MM.DD')}`;
     } else {
       alert('컨플루언스에 등록할 보고서 탭(일일 혹은 주간)을 선택해 주세요.');
