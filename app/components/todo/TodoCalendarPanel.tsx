@@ -94,7 +94,7 @@ export default function TodoCalendarPanel() {
       try {
         const res = await fetch('/api/todo');
         const data = await res.json();
-        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+        if (data.success && Array.isArray(data.data)) {
           setItems(data.data);
           if (typeof window !== 'undefined') {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(data.data));
