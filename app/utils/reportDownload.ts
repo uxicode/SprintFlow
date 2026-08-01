@@ -167,25 +167,32 @@ export function cleanWeeklyDownloadMarkdown(markdown: string): string {
   return processedLines.join('\n');
 }
 
-export function buildWeeklyDownloadMarkdown({
-  weeklyReportMd,
-  scheduleTickets,
-  tickets,
-  searchKeyword,
-  tagFilters,
-}: BuildWeeklyDownloadParams): string {
-  if (!weeklyReportMd) return '';
-
-  const progressSourceTickets = scheduleTickets && scheduleTickets.length > 0
-    ? scheduleTickets
-    : tickets;
+export function buildWeeklyDownloadMarkdown(params: BuildWeeklyDownloadParams): string {
+  const {
+    weeklyReportMd,
+    tickets,
+    nextTickets,
+    scheduleTickets,
+    vacationList,
+    dateStart,
+    dateEnd,
+    registeredMembers,
+    searchKeyword,
+    epicSortOrder,
+    tagFilters,
+  } = params;
 
   let baseMd = weeklyReportMd;
 
+  // 마크다운 표 생성 대상 티켓 선정 (누적 scheduleTickets가 있으면 최우선, 없으면 일반 tickets)
+  const progressSourceTickets = (scheduleTickets && scheduleTickets.length > 0)
+    ? scheduleTickets
+    : tickets;
+
   // 만약 기존 마크다운에 "에픽별 진행 현황" 표가 없다면 보충
   if (progressSourceTickets && progressSourceTickets.length > 0 && !baseMd.includes('에픽별 진행 현황')) {
-    const epicSchedules = buildEpicScheduleData(progressSourceTickets);
-    const summaryTable = buildEpicSummaryTable(epicSchedules);
+    const epicSchedules = buildEpicScheduleData(progressSourceTickets, epicSortOrder);
+    const summaryTable = buildEpicSummaryTable(epicSchedules, epicSortOrder);
     if (summaryTable) {
       if (baseMd.includes('## 📋 3. 에픽별 상세 업무 진행 현황')) {
         baseMd = baseMd.replace(
@@ -198,11 +205,10 @@ export function buildWeeklyDownloadMarkdown({
     }
   }
 
-  if ((searchKeyword && searchKeyword.trim()) || tagFilters) {
-    baseMd = applyWeeklyReportFilter(baseMd, searchKeyword || '', tagFilters);
+  if ((searchKeyword && searchKeyword.trim()) || tagFilters || (epicSortOrder && epicSortOrder !== 'latest')) {
+    baseMd = applyWeeklyReportFilter(baseMd, searchKeyword || '', tagFilters, epicSortOrder);
   }
 
   // 에픽 넘버, 티켓 넘버, 파트 태그, 지라 링크, 아이콘 정제 및 (완료- M/D) 포맷 적용
   return cleanWeeklyDownloadMarkdown(baseMd).trim() + '\n';
 }
-

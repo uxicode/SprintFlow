@@ -8,6 +8,7 @@ dayjs.extend(timezone);
 import type {
   CalendarDateField,
   CalendarEvent,
+  EpicSortOrder,
   ReportParams,
   StatusCategory,
   Ticket,
@@ -16,7 +17,7 @@ import type {
   VacationParseResult,
   WeeklyReportTagFilters,
 } from '../types';
-import { buildEpicScheduleData, buildEpicSummaryTable } from './schedule';
+import { buildEpicScheduleData, buildEpicSummaryTable, sortEpicScheduleData } from './schedule';
 
 // 티켓 제목 내 대괄호 [ ]를 ( )로 안전하게 변경하여 마크다운 링크 파서 깨짐 현상 예방
 export const escapeBrackets = (text: string): string => {
@@ -688,38 +689,170 @@ export function processEpicSearchGroup(sectionText: string, searchKeyword: strin
 }
 
 interface CategoryInfo {
+  position: string | null;
+  pathPrefix: string | null;
   categoryPrefix: string;
   subItem: string;
 }
 
 function parseCategoryInfo(text: string): CategoryInfo | null {
-  if (!text || !text.includes('>')) return null;
+  if (!text) return null;
 
-  // Case 1: 마크다운 링크 형태 [대시보드 > 주요 운영 지표 > 검사 수행 현황](url) (완료)
-  const linkMatch = text.match(/^\[(.*?)\]\((.*?)\)(.*)$/);
-  if (linkMatch) {
-    const anchorText = linkMatch[1];
-    const url = linkMatch[2];
-    const restSuffix = linkMatch[3];
+  let workingText = text.trim();
+  let position: string | null = null;
 
-    if (!anchorText.includes('>')) return null;
+  const posRegex = /\((FE|BE|MO|DE|Design|QA|DevOps|PM|PO|iOS|Android|Fullstack|Publishing|Markup|Frontend|Backend|[A-Z]{2,6})\)/i;
 
-    const lastGtIdx = anchorText.lastIndexOf('>');
-    const categoryPrefix = anchorText.substring(0, lastGtIdx).trim();
-    const detailTitle = anchorText.substring(lastGtIdx + 1).trim();
-
-    const subItem = `[${detailTitle}](${url})${restSuffix}`;
-    return { categoryPrefix, subItem };
+  // 1) 텍스트 어디에든 포지션 태그가 위치해 있는지 탐색 및 추출
+  const matchPos = workingText.match(posRegex);
+  if (matchPos) {
+    position = matchPos[0];
+    workingText = workingText
+      .replace(posRegex, '')
+      .replace(/\s+/g, ' ')
+      .replace(/\[\s+/g, '[')
+      .replace(/\s+\]/g, ']')
+      .trim();
   }
 
-  // Case 2: 일반 텍스트 형태 대시보드 > 주요 운영 지표 > 검사 수행 현황 영역 (완료)
-  const lastGtIdx = text.lastIndexOf('>');
-  if (lastGtIdx === -1) return null;
+  // 2) 마크다운 링크 형태 파싱: e.g. "[DI26-752: 건강 상담 > 라이브러리 검토](url) (완료)"
+  const linkMatch = workingText.match(/^(\[[^\]]+\]\([^)]+\))(.*)$/);
+  if (linkMatch) {
+    const fullLink = linkMatch[1];
+    const restSuffix = linkMatch[2];
 
-  const categoryPrefix = text.substring(0, lastGtIdx).trim();
-  const subItem = text.substring(lastGtIdx + 1).trim();
+    const insideMatch = fullLink.match(/^\[(.*?)\]\((.*?)\)$/);
+    if (insideMatch) {
+      const anchorText = insideMatch[1];
+      const url = insideMatch[2];
 
-  return { categoryPrefix, subItem };
+      if (anchorText.includes('>')) {
+        const lastGtIdx = anchorText.lastIndexOf('>');
+        const rawPrefix = anchorText.substring(0, lastGtIdx).trim();
+        const detailTitle = anchorText.substring(lastGtIdx + 1).trim();
+
+        const ticketNumMatch = rawPrefix.match(/^([A-Za-z0-9]+-\d+:\s*)(.*)$/);
+        let ticketPrefix = '';
+        let pathPrefix = rawPrefix;
+        if (ticketNumMatch) {
+          ticketPrefix = ticketNumMatch[1];
+          pathPrefix = ticketNumMatch[2].trim();
+        }
+
+        const subItem = `[${ticketPrefix}${detailTitle}](${url})${restSuffix}`;
+        const categoryPrefix = position ? `${position} ${pathPrefix}` : pathPrefix;
+
+        return { position, pathPrefix, categoryPrefix, subItem };
+      }
+    }
+  }
+
+  // 3) 일반 텍스트 > 구분자 파싱
+  if (workingText.includes('>')) {
+    const lastGtIdx = workingText.lastIndexOf('>');
+    const pathPrefix = workingText.substring(0, lastGtIdx).trim();
+    const subItem = workingText.substring(lastGtIdx + 1).trim();
+
+    if (pathPrefix.includes('[') && !pathPrefix.includes(']')) {
+      const openBracketIdx = pathPrefix.indexOf('[');
+      const cleanPath = pathPrefix.substring(0, openBracketIdx).trim();
+      const restoredSubItem = `${pathPrefix.substring(openBracketIdx)}> ${subItem}`;
+      const categoryPrefix = position ? `${position} ${cleanPath}` : cleanPath;
+      return { position, pathPrefix: cleanPath, categoryPrefix, subItem: restoredSubItem };
+    }
+
+    const categoryPrefix = position ? `${position} ${pathPrefix}` : pathPrefix;
+    return { position, pathPrefix, categoryPrefix, subItem };
+  }
+
+  // 4) > 구분자는 없으나 포지션 태그가 추출된 경우 (e.g. (BE))
+  if (position) {
+    return { position, pathPrefix: null, categoryPrefix: position, subItem: workingText };
+  }
+
+  return null;
+}
+
+interface ParsedSubItem {
+  raw: string;
+  title: string;
+  status: string;
+  hasLink: boolean;
+}
+
+function parseSubItemTitleAndStatus(item: string): ParsedSubItem {
+  const match = item.match(/^(.*?)\s*(\((?:완료|진행\s*중|대기\s*중|Done|In\s*Progress|To\s*Do|Resolved|Closed)\))$/i);
+  let mainContent = item.trim();
+  let status = '';
+  if (match) {
+    mainContent = match[1].trim();
+    status = match[2].trim();
+  }
+
+  const hasLink = mainContent.includes('[') && mainContent.includes('](');
+  return { raw: item, title: mainContent, status, hasLink };
+}
+
+function compressCommonPrefixes(subItems: string[]): string[] {
+  if (subItems.length <= 1) return subItems;
+
+  const parsed = subItems.map(parseSubItemTitleAndStatus);
+
+  // 1. 공통 첫 단어 (접두어, 예: "채팅방 ") 기준 분류
+  const prefixMap: Record<string, ParsedSubItem[]> = {};
+
+  parsed.forEach((item) => {
+    let cleanTitle = item.title;
+    const linkMatch = item.title.match(/^\[(.*?)\]\((.*?)\)$/);
+    if (linkMatch) {
+      cleanTitle = linkMatch[1];
+    }
+    cleanTitle = cleanTitle.replace(/^[A-Za-z0-9]+-\d+:\s*/, '');
+
+    const words = cleanTitle.trim().split(/\s+/);
+    if (words.length >= 2) {
+      const candidatePrefix = words[0] + ' ';
+      if (!prefixMap[candidatePrefix]) {
+        prefixMap[candidatePrefix] = [];
+      }
+      prefixMap[candidatePrefix].push(item);
+    }
+  });
+
+  const prefixMergedMap: Record<string, string> = {};
+  const mergedOutRaws = new Set<string>();
+
+  Object.entries(prefixMap).forEach(([prefix, items]) => {
+    if (items.length >= 2) {
+      const representativeRaw = items[0].raw;
+      const formattedItems = items.map((i, idx) => {
+        if (idx === 0) return i.raw;
+        if (i.raw.includes(prefix)) {
+          return i.raw.replace(prefix, '');
+        }
+        return i.raw;
+      });
+
+      prefixMergedMap[representativeRaw] = formattedItems.join(', ');
+
+      for (let k = 1; k < items.length; k++) {
+        mergedOutRaws.add(items[k].raw);
+      }
+    }
+  });
+
+  // 2. 원본 subItems의 순서를 100% 엄격하게 보존하면서 결과 배열 구성
+  const result: string[] = [];
+
+  parsed.forEach((item) => {
+    if (prefixMergedMap[item.raw]) {
+      result.push(prefixMergedMap[item.raw]);
+    } else if (!mergedOutRaws.has(item.raw)) {
+      result.push(item.raw);
+    }
+  });
+
+  return result;
 }
 
 function isSameCategoryAsEpic(categoryPrefix: string, epicTitle: string): boolean {
@@ -745,6 +878,8 @@ function groupCategoryLines(lines: string[]): string {
     originalIndex: number;
     line: string;
     bulletPrefix: string;
+    position: string | null;
+    pathPrefix: string | null;
     categoryPrefix: string | null;
     subItem: string | null;
     groupKey: string | null;
@@ -761,7 +896,17 @@ function groupCategoryLines(lines: string[]): string {
 
     const bulletMatch = line.match(/^(\s*[*|-]\s*(?:✅|🔄|⏱️|⏱|🟢)?\s*)(.*)$/);
     if (!bulletMatch) {
-      return { originalIndex: idx, line, bulletPrefix: '', categoryPrefix: null, subItem: null, groupKey: null, epicTitle: currentEpicTitle };
+      return {
+        originalIndex: idx,
+        line,
+        bulletPrefix: '',
+        position: null,
+        pathPrefix: null,
+        categoryPrefix: null,
+        subItem: null,
+        groupKey: null,
+        epicTitle: currentEpicTitle,
+      };
     }
 
     const bulletPrefix = bulletMatch[1];
@@ -769,14 +914,27 @@ function groupCategoryLines(lines: string[]): string {
     const categoryInfo = parseCategoryInfo(restText);
 
     if (!categoryInfo) {
-      return { originalIndex: idx, line, bulletPrefix, categoryPrefix: null, subItem: null, groupKey: null, epicTitle: currentEpicTitle };
+      return {
+        originalIndex: idx,
+        line,
+        bulletPrefix,
+        position: null,
+        pathPrefix: null,
+        categoryPrefix: null,
+        subItem: null,
+        groupKey: null,
+        epicTitle: currentEpicTitle,
+      };
     }
 
-    const groupKey = `${bulletPrefix.trim()}|||${categoryInfo.categoryPrefix.trim()}`;
+    // groupKey를 에픽제목 + 카테고리프리픽스 조합으로 설정하여 동일 에픽 내 동일 카테고리를 완벽히 그룹화
+    const groupKey = `${currentEpicTitle}|||${categoryInfo.categoryPrefix.trim()}`;
     return {
       originalIndex: idx,
       line,
       bulletPrefix,
+      position: categoryInfo.position,
+      pathPrefix: categoryInfo.pathPrefix,
       categoryPrefix: categoryInfo.categoryPrefix,
       subItem: categoryInfo.subItem,
       groupKey,
@@ -784,13 +942,26 @@ function groupCategoryLines(lines: string[]): string {
     };
   });
 
-  const categoryGroups: Record<string, { bulletPrefix: string; categoryPrefix: string; epicTitle: string; firstIndex: number; subItems: string[] }> = {};
+  const categoryGroups: Record<
+    string,
+    {
+      bulletPrefix: string;
+      position: string | null;
+      pathPrefix: string | null;
+      categoryPrefix: string;
+      epicTitle: string;
+      firstIndex: number;
+      subItems: string[];
+    }
+  > = {};
 
   parsedLines.forEach((item) => {
     if (item.groupKey && item.categoryPrefix && item.subItem) {
       if (!categoryGroups[item.groupKey]) {
         categoryGroups[item.groupKey] = {
           bulletPrefix: item.bulletPrefix,
+          position: item.position,
+          pathPrefix: item.pathPrefix,
           categoryPrefix: item.categoryPrefix,
           epicTitle: item.epicTitle,
           firstIndex: item.originalIndex,
@@ -802,6 +973,13 @@ function groupCategoryLines(lines: string[]): string {
     }
   });
 
+  // [DEBUG] 카테고리 그룹 확인용 로그 (추후 제거)
+  console.log('[groupCategoryLines] categoryGroups:', JSON.stringify(
+    Object.fromEntries(
+      Object.entries(categoryGroups).map(([k, v]) => [k, { subItems: v.subItems, pathPrefix: v.pathPrefix, bulletPrefix: v.bulletPrefix }])
+    ), null, 2
+  ));
+
   const processedKeys = new Set<string>();
   const result: string[] = [];
 
@@ -812,7 +990,7 @@ function groupCategoryLines(lines: string[]): string {
     }
 
     const group = categoryGroups[item.groupKey];
-    if (!group || group.subItems.length <= 1) {
+    if (!group) {
       result.push(item.line);
       return;
     }
@@ -820,11 +998,22 @@ function groupCategoryLines(lines: string[]): string {
     if (!processedKeys.has(item.groupKey)) {
       processedKeys.add(item.groupKey);
 
-      const isSameAsEpic = isSameCategoryAsEpic(group.categoryPrefix, group.epicTitle);
-      if (isSameAsEpic) {
-        result.push(`${group.bulletPrefix}${group.subItems.join(', ')}`);
+      // 공통 접두어 티켓 압축
+      const compressedSubItems = compressCommonPrefixes(group.subItems);
+
+      // [DEBUG] 압축 결과 로그 (추후 제거)
+      console.log(`[groupCategoryLines] groupKey="${item.groupKey}" pathPrefix="${group.pathPrefix}" compressed:`, compressedSubItems);
+
+      // > 경로가 포함된 카테고리 그룹 (예: (MO) 건강 상담 > ...)
+      if (group.pathPrefix) {
+        const displayCategory = group.position ? group.position : group.categoryPrefix;
+        result.push(`${group.bulletPrefix}${displayCategory} ${compressedSubItems.join(', ')}`);
       } else {
-        result.push(`${group.bulletPrefix}${group.categoryPrefix}: ${group.subItems.join(', ')}`);
+        // > 경로 없이 포지션(예: (BE))만 있거나 일반 카테고리인 경우
+        compressedSubItems.forEach((sub) => {
+          const prefixLabel = group.categoryPrefix ? `${group.categoryPrefix} ` : '';
+          result.push(`${group.bulletPrefix}${prefixLabel}${sub}`);
+        });
       }
     }
   });
@@ -910,10 +1099,116 @@ export function applyWeeklyReportTagFilters(
     .join('');
 }
 
+export function sortWeeklyReportEpics(
+  weeklyMd: string,
+  epicSortOrder: EpicSortOrder = 'latest'
+): string {
+  if (!weeklyMd || epicSortOrder === 'latest') return weeklyMd;
+
+  let result = weeklyMd;
+
+  // 1. "### 📊 에픽별 진행 현황" 표 정렬
+  const summaryTableRegex = /(### 📊 에픽별 진행 현황\s*\n\n\|[^\n]+\|\n\|[^\n]+\|\n)([\s\S]*?)(\n\n|$)/;
+  const match = result.match(summaryTableRegex);
+
+  if (match) {
+    const tableHeader = match[1];
+    const tableRowsText = match[2].trim();
+    const ending = match[3];
+
+    const rows = tableRowsText.split('\n').filter((r) => r.trim().startsWith('|'));
+
+    const parseRow = (row: string) => {
+      const cols = row.split('|').map((c) => c.trim()).filter(Boolean);
+      const epicTitle = (cols[0] || '').replace(/\*\*/g, '').trim();
+      const dueDate = cols[1] || '';
+      const totalProgCol = cols[5] || '';
+
+      const progMatch = totalProgCol.match(/(\d+)%/);
+      const progress = progMatch ? parseInt(progMatch[1], 10) : 0;
+
+      return { row, epicTitle, dueDate, progress };
+    };
+
+    const parsedRows = rows.map(parseRow);
+
+    parsedRows.sort((a, b) => {
+      if (a.epicTitle.includes('기타') || a.epicTitle.includes('에픽 없음')) return 1;
+      if (b.epicTitle.includes('기타') || b.epicTitle.includes('에픽 없음')) return -1;
+
+      switch (epicSortOrder) {
+        case 'name_asc':
+          return a.epicTitle.localeCompare(b.epicTitle, 'ko-KR');
+        case 'progress_desc':
+          return b.progress - a.progress;
+        case 'progress_asc':
+          return a.progress - b.progress;
+        case 'due_date_asc': {
+          if (!a.dueDate || a.dueDate === '-') return 1;
+          if (!b.dueDate || b.dueDate === '-') return -1;
+          return a.dueDate.localeCompare(b.dueDate);
+        }
+        case 'due_date_desc': {
+          if (!a.dueDate || a.dueDate === '-') return 1;
+          if (!b.dueDate || b.dueDate === '-') return -1;
+          return b.dueDate.localeCompare(a.dueDate);
+        }
+        default:
+          return 0;
+      }
+    });
+
+    const sortedRowsText = parsedRows.map((r) => r.row).join('\n');
+    result = result.replace(summaryTableRegex, `${tableHeader}${sortedRowsText}${ending}`);
+  }
+
+  // 2. "## 📋 3. 에픽별 상세 업무 진행 현황" 섹션 에픽 블록 정렬
+  const section3Regex = /(## 📋 3\. 에픽별 상세 업무 진행 현황\s*\n\n)([\s\S]*?)(?=\n## |$)/;
+  const matchSec3 = result.match(section3Regex);
+
+  if (matchSec3) {
+    const sec3Header = matchSec3[1];
+    const sec3Body = matchSec3[2];
+
+    const epicBlocks = sec3Body.split(/(?=^### 🏷️)/m).filter((b) => b.trim().length > 0);
+
+    const parseBlock = (block: string) => {
+      const firstLine = block.split('\n')[0] || '';
+      const cleanTitle = firstLine.replace(/^### 🏷️\s*(?:에픽:\s*)?/, '').trim();
+      return { block, title: cleanTitle };
+    };
+
+    const parsedBlocks = epicBlocks.map(parseBlock);
+
+    parsedBlocks.sort((a, b) => {
+      if (a.title.includes('기타 업무') || a.title.includes('에픽 없음')) return 1;
+      if (b.title.includes('기타 업무') || b.title.includes('에픽 없음')) return -1;
+
+      switch (epicSortOrder) {
+        case 'name_asc':
+          return a.title.localeCompare(b.title, 'ko-KR');
+        case 'progress_desc':
+        case 'progress_asc':
+        case 'due_date_asc':
+        case 'due_date_desc':
+          return a.title.localeCompare(b.title, 'ko-KR');
+        default:
+          return 0;
+      }
+    });
+
+    const sortedSec3Body = parsedBlocks.map((b) => b.block).join('');
+    result = result.replace(section3Regex, `${sec3Header}${sortedSec3Body}`);
+  }
+
+  return result;
+}
+
 export function applyWeeklyReportFilter(
   weeklyMd: string,
   searchKeyword: string,
-  tagFilters?: WeeklyReportTagFilters
+  tagFilters?: WeeklyReportTagFilters,
+  epicSortOrder?: EpicSortOrder
 ): string {
   let result = weeklyMd;
 
@@ -927,6 +1222,10 @@ export function applyWeeklyReportFilter(
         return processEpicSearchGroup(section, searchKeyword);
       })
       .join('');
+  }
+
+  if (epicSortOrder && epicSortOrder !== 'latest') {
+    result = sortWeeklyReportEpics(result, epicSortOrder);
   }
 
   if (tagFilters) {

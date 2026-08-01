@@ -8,10 +8,11 @@ import ScheduleTab from '../schedule/ScheduleTab';
 import GenieDockWrapper from '../GenieDockWrapper';
 import { useReportActions } from '../../hooks/use-report-actions';
 import { applyWeeklyReportFilter } from '../../utils/jira';
-import type { WeeklyReportTagFilters } from '../../types';
+import type { EpicSortOrder, WeeklyReportTagFilters } from '../../types';
 
 const SEARCH_KEYWORD_STORAGE_KEY = 'sprintflow_epic_search_keyword';
 const TAG_FILTERS_STORAGE_KEY = 'sprintflow_weekly_tag_filters';
+const EPIC_SORT_ORDER_STORAGE_KEY = 'sprintflow_epic_sort_order';
 const REPORT_SECTION_COLLAPSED_KEY = 'sprintflow_report_section_collapsed';
 
 export default function ReportSection() {
@@ -41,6 +42,20 @@ export default function ReportSection() {
       groupCategory: false,
     };
   });
+
+  const [epicSortOrder, setEpicSortOrder] = useState<EpicSortOrder>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem(EPIC_SORT_ORDER_STORAGE_KEY) as EpicSortOrder) || 'latest';
+    }
+    return 'latest';
+  });
+
+  const handleEpicSortChange = (value: EpicSortOrder) => {
+    setEpicSortOrder(value);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(EPIC_SORT_ORDER_STORAGE_KEY, value);
+    }
+  };
 
   const [isCollapsed, setIsCollapsed] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -106,7 +121,7 @@ export default function ReportSection() {
     };
   }, [isDownloading]);
 
-  const processedWeeklyMd = applyWeeklyReportFilter(weeklyReportMd, searchKeyword, tagFilters);
+  const processedWeeklyMd = applyWeeklyReportFilter(weeklyReportMd, searchKeyword, tagFilters, epicSortOrder);
 
   return (
     <GenieDockWrapper sectionId="report">
@@ -152,9 +167,9 @@ export default function ReportSection() {
           </div>
           <div className="report-header-actions">
             <ReportTabActions
-              onCopy={() => handleCopyReport(searchKeyword, tagFilters)}
-              onDownload={() => handleDownloadReport(searchKeyword, tagFilters)}
-              onPublishConfluence={() => handlePublishConfluence(searchKeyword, tagFilters)}
+              onCopy={() => handleCopyReport(searchKeyword, tagFilters, epicSortOrder)}
+              onDownload={() => handleDownloadReport(searchKeyword, tagFilters, epicSortOrder)}
+              onPublishConfluence={() => handlePublishConfluence(searchKeyword, tagFilters, epicSortOrder)}
               disabled={isDownloading}
             />
             <button
@@ -183,7 +198,7 @@ export default function ReportSection() {
           <>
             {activeTab === 'tab-weekly' && (
               <div className="weekly-filter-controls">
-                <div className="epic-search-bar-container">
+                <div className="epic-filter-controls-row">
                   <div className="epic-search-input-wrapper">
                     <span className="epic-search-icon" aria-hidden="true">🔍</span>
                     <input
@@ -204,6 +219,24 @@ export default function ReportSection() {
                         ✕
                       </button>
                     )}
+                  </div>
+
+                  <div className="epic-sort-select-wrapper">
+                    <span className="epic-sort-icon" aria-hidden="true">📊</span>
+                    <select
+                      className="epic-sort-select"
+                      value={epicSortOrder}
+                      onChange={(e) => handleEpicSortChange(e.target.value as EpicSortOrder)}
+                      aria-label="에픽 정렬 순서 필터"
+                      title="에픽별 진행 현황 리스트 정렬 순서"
+                    >
+                      <option value="latest">🕒 최신 수정일순</option>
+                      <option value="name_asc">🔤 에픽 이름순</option>
+                      <option value="progress_desc">📈 진행률 높은순</option>
+                      <option value="progress_asc">📉 진행률 낮은순</option>
+                      <option value="due_date_asc">📅 마감일 임박순</option>
+                      <option value="due_date_desc">📅 마감일 여유순</option>
+                    </select>
                   </div>
                 </div>
 

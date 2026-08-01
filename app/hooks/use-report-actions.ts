@@ -15,7 +15,7 @@ import {
   useTypedSettingsStore,
   useTypedUiStore,
 } from './typed-stores';
-import type { ActiveTab, WeeklyReportTagFilters } from '../types';
+import type { ActiveTab, EpicSortOrder, WeeklyReportTagFilters } from '../types';
 
 interface ConfluencePublishRequestBody {
   type: string;
@@ -57,12 +57,16 @@ export function useReportActions() {
     setActiveTab(tab);
   };
 
-  const handleCopyReport = (searchKeyword?: string, tagFilters?: WeeklyReportTagFilters): void => {
+  const handleCopyReport = (
+    searchKeyword?: string,
+    tagFilters?: WeeklyReportTagFilters,
+    epicSortOrder?: EpicSortOrder
+  ): void => {
     if (isDownloading) return;
     let txt = '';
     if (activeTab === 'tab-daily') txt = dailyReportMd;
     else if (activeTab === 'tab-weekly') {
-      txt = applyWeeklyReportFilter(weeklyReportMd, searchKeyword || '', tagFilters);
+      txt = applyWeeklyReportFilter(weeklyReportMd, searchKeyword || '', tagFilters, epicSortOrder);
     } else {
       alert('복사할 마크다운 보고서 탭을 선택해 주세요.');
       return;
@@ -78,7 +82,11 @@ export function useReportActions() {
       .catch(() => alert('클립보드 복사 중 에러가 발생했습니다.'));
   };
 
-  const handleDownloadReport = async (searchKeyword?: string, tagFilters?: WeeklyReportTagFilters): Promise<void> => {
+  const handleDownloadReport = async (
+    searchKeyword?: string,
+    tagFilters?: WeeklyReportTagFilters,
+    epicSortOrder?: EpicSortOrder
+  ): Promise<void> => {
     if (isDownloading) return;
 
     let txt = '';
@@ -116,6 +124,7 @@ export function useReportActions() {
           dateEnd,
           registeredMembers,
           searchKeyword,
+          epicSortOrder,
           tagFilters,
         });
         name = `Weekly_Report_${dateStart}_to_${dateEnd}.md`;
@@ -144,7 +153,11 @@ export function useReportActions() {
     URL.revokeObjectURL(blobUrl);
   };
 
-  const handlePublishConfluence = async (searchKeyword?: string, tagFilters?: WeeklyReportTagFilters): Promise<void> => {
+  const handlePublishConfluence = async (
+    searchKeyword?: string,
+    tagFilters?: WeeklyReportTagFilters,
+    epicSortOrder?: EpicSortOrder
+  ): Promise<void> => {
     if (isDownloading) return;
     let reportText = '';
     let reportTitle = '';
@@ -153,7 +166,7 @@ export function useReportActions() {
       reportText = dailyReportMd;
       reportTitle = `📅 [일일업무] ${dayjs().format('YYYY.MM.DD')}`;
     } else if (activeTab === 'tab-weekly') {
-      reportText = applyWeeklyReportFilter(weeklyReportMd, searchKeyword || '', tagFilters);
+      reportText = applyWeeklyReportFilter(weeklyReportMd, searchKeyword || '', tagFilters, epicSortOrder);
       reportTitle = `📊 [주간업무] ${dayjs(dateStart).format('YYYY.MM.DD')} ~ ${dayjs(dateEnd).format('YYYY.MM.DD')}`;
     } else {
       alert('컨플루언스에 등록할 보고서 탭(일일 혹은 주간)을 선택해 주세요.');

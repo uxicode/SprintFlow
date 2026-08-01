@@ -2965,7 +2965,15 @@ select.select-input:focus {
   }
 }
 
-/* 에픽 검색어 필터 바 스타일 */
+/* 에픽 필터 및 정렬 바 스타일 */
+.epic-filter-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
 .epic-search-bar-container {
   padding: 0.75rem 1.5rem;
   background: rgba(255, 255, 255, 0.02);
@@ -2976,10 +2984,54 @@ select.select-input:focus {
 
 .epic-search-input-wrapper {
   position: relative;
-  width: 100%;
+  flex: 1;
+  min-width: 280px;
   max-width: 540px;
   display: flex;
   align-items: center;
+}
+
+.epic-sort-select-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 170px;
+}
+
+.epic-sort-icon {
+  position: absolute;
+  left: 0.75rem;
+  font-size: 0.85rem;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.epic-sort-select {
+  width: 100%;
+  padding: 0.55rem 2rem 0.55rem 2.2rem;
+  background: rgba(20, 20, 35, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-sm, 6px);
+  color: #fff;
+  font-size: 0.86rem;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.epic-sort-select:focus,
+.epic-sort-select:hover {
+  border-color: var(--color-accent, #00f2fe);
+  box-shadow: 0 0 8px rgba(0, 242, 254, 0.2);
+}
+
+.epic-sort-select option {
+  background: #181926;
+  color: #fff;
 }
 
 .epic-search-icon {

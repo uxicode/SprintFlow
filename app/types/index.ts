@@ -161,6 +161,14 @@ export interface CategorizedTickets {
   OTHER: Ticket[];
 }
 
+export type EpicSortOrder =
+  | 'latest'
+  | 'name_asc'
+  | 'progress_desc'
+  | 'progress_asc'
+  | 'due_date_asc'
+  | 'due_date_desc';
+
 export interface EpicScheduleItem {
   key: string;
   summary: string;
@@ -410,6 +418,7 @@ export interface BuildWeeklyDownloadParams {
   dateEnd: string;
   registeredMembers: string[];
   searchKeyword?: string;
+  epicSortOrder?: EpicSortOrder;
   tagFilters?: WeeklyReportTagFilters;
 }
 

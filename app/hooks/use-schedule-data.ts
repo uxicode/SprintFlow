@@ -10,9 +10,9 @@ import {
   useTypedSettingsStore,
   useTypedUiStore,
 } from './typed-stores';
-import type { GanttData } from '../types';
+import type { EpicSortOrder, GanttData } from '../types';
 
-export function useScheduleData(): { ganttData: GanttData; isScheduleLoading: boolean } {
+export function useScheduleData(sortOrder: EpicSortOrder = 'latest'): { ganttData: GanttData; isScheduleLoading: boolean } {
   const isConfigLoaded = useTypedUiStore((s) => s.isConfigLoaded);
   const activeTab = useTypedUiStore((s) => s.activeTab);
   const setConnectionStatus = useTypedUiStore((s) => s.setConnectionStatus);
@@ -46,9 +46,9 @@ export function useScheduleData(): { ganttData: GanttData; isScheduleLoading: bo
 
   const ganttData = useMemo(() => {
     const scheduleTickets = query.data?.tickets ?? [];
-    const epicScheduleData = buildEpicScheduleData(scheduleTickets);
+    const epicScheduleData = buildEpicScheduleData(scheduleTickets, sortOrder);
     return buildGanttData(epicScheduleData);
-  }, [query.data?.tickets]);
+  }, [query.data?.tickets, sortOrder]);
 
   return {
     ganttData,

@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
 import { getStatusCategory } from './jira';
-import type { EpicScheduleItem, GanttData, Ticket } from '../types';
+import type { EpicScheduleItem, EpicSortOrder, GanttData, Ticket } from '../types';
 
 interface EpicAccumulator {
   key: string;
@@ -8,7 +8,73 @@ interface EpicAccumulator {
   tickets: Ticket[];
 }
 
-export function buildEpicScheduleData(scheduleTickets: Ticket[]): EpicScheduleItem[] {
+export function sortEpicScheduleData(
+  epics: EpicScheduleItem[],
+  sortOrder: EpicSortOrder = 'latest'
+): EpicScheduleItem[] {
+  const getLatestUpdate = (epicTickets: Ticket[]): number => {
+    if (!epicTickets || epicTickets.length === 0) return 0;
+    const dates = epicTickets.map(t => dayjs(t.updated || 0).valueOf());
+    return Math.max(...dates);
+  };
+
+  const getOverallProgress = (item: EpicScheduleItem): number => {
+    if (!item.tickets || item.tickets.length === 0) return 0;
+    const doneCount = item.tickets.filter(t => getStatusCategory(t.status) === 'Done').length;
+    return Math.round((doneCount / item.tickets.length) * 100);
+  };
+
+  return [...epics].sort((a, b) => {
+    if (a.key === 'NO_EPIC') return 1;
+    if (b.key === 'NO_EPIC') return -1;
+
+    switch (sortOrder) {
+      case 'name_asc': {
+        const titleA = a.summary || a.key;
+        const titleB = b.summary || b.key;
+        return titleA.localeCompare(titleB, 'ko-KR');
+      }
+      case 'progress_desc': {
+        const progA = getOverallProgress(a);
+        const progB = getOverallProgress(b);
+        if (progB !== progA) return progB - progA;
+        return a.key.localeCompare(b.key);
+      }
+      case 'progress_asc': {
+        const progA = getOverallProgress(a);
+        const progB = getOverallProgress(b);
+        if (progA !== progB) return progA - progB;
+        return a.key.localeCompare(b.key);
+      }
+      case 'due_date_asc': {
+        if (!a.endDate && !b.endDate) return a.key.localeCompare(b.key);
+        if (!a.endDate) return 1;
+        if (!b.endDate) return -1;
+        const diff = dayjs(a.endDate).valueOf() - dayjs(b.endDate).valueOf();
+        return diff !== 0 ? diff : a.key.localeCompare(b.key);
+      }
+      case 'due_date_desc': {
+        if (!a.endDate && !b.endDate) return a.key.localeCompare(b.key);
+        if (!a.endDate) return 1;
+        if (!b.endDate) return -1;
+        const diff = dayjs(b.endDate).valueOf() - dayjs(a.endDate).valueOf();
+        return diff !== 0 ? diff : a.key.localeCompare(b.key);
+      }
+      case 'latest':
+      default: {
+        const aLatest = getLatestUpdate(a.tickets);
+        const bLatest = getLatestUpdate(b.tickets);
+        if (bLatest !== aLatest) return bLatest - aLatest;
+        return a.key.localeCompare(b.key);
+      }
+    }
+  });
+}
+
+export function buildEpicScheduleData(
+  scheduleTickets: Ticket[],
+  sortOrder: EpicSortOrder = 'latest'
+): EpicScheduleItem[] {
   const epicsMap: Record<string, EpicAccumulator> = {};
 
   scheduleTickets.forEach(t => {
@@ -71,20 +137,7 @@ export function buildEpicScheduleData(scheduleTickets: Ticket[]): EpicScheduleIt
     };
   });
 
-  const getLatestUpdate = (epicTickets: Ticket[]): number => {
-    if (!epicTickets || epicTickets.length === 0) return 0;
-    const dates = epicTickets.map(t => dayjs(t.updated || 0).valueOf());
-    return Math.max(...dates);
-  };
-
-  return epicsList.sort((a, b) => {
-    if (a.key === 'NO_EPIC') return 1;
-    if (b.key === 'NO_EPIC') return -1;
-    const aLatest = getLatestUpdate(a.tickets);
-    const bLatest = getLatestUpdate(b.tickets);
-    if (bLatest !== aLatest) return bLatest - aLatest;
-    return a.key.localeCompare(b.key);
-  });
+  return sortEpicScheduleData(epicsList, sortOrder);
 }
 
 export function buildGanttData(epicScheduleData: EpicScheduleItem[]): GanttData {
@@ -154,10 +207,14 @@ export function formatGroupProgressBadge(
   return `${progress}% (${doneCount}/${totalCount})`;
 }
 
-export function buildEpicSummaryTable(epicSchedules: EpicScheduleItem[]): string {
+export function buildEpicSummaryTable(
+  epicSchedules: EpicScheduleItem[],
+  sortOrder: EpicSortOrder = 'latest'
+): string {
   if (!epicSchedules || epicSchedules.length === 0) return '';
 
-  const targetEpics = epicSchedules.filter(item => item.key !== 'NO_EPIC' || epicSchedules.length === 1);
+  const sortedSchedules = sortEpicScheduleData(epicSchedules, sortOrder);
+  const targetEpics = sortedSchedules.filter(item => item.key !== 'NO_EPIC' || sortedSchedules.length === 1);
   if (targetEpics.length === 0) return '';
 
   const cleanCell = (str: string | null | undefined): string => {
