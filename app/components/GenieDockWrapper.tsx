@@ -292,7 +292,7 @@ export default function GenieDockWrapper({ sectionId, children }: GenieDockWrapp
   // Reset GSAP transforms when completely undocked
   useEffect(() => {
     if (!dockState.isDocked && !dockState.isAnimating && containerRef.current) {
-      gsap.set(containerRef.current, { x: 0, y: 0, scale: 1, opacity: 1, rotation: 0 });
+      gsap.set(containerRef.current, { clearProps: 'transform', opacity: 1 });
       setDragOffset({ x: 0, y: 0 });
     }
   }, [dockState.isDocked, dockState.isAnimating]);

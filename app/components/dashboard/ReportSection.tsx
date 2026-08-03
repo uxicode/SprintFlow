@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import TabButton from '../TabButton';
 import TabPanel from '../TabPanel';
 import ReportTabActions from '../ReportTabActions';
@@ -64,6 +64,19 @@ export default function ReportSection() {
     return false;
   });
 
+  const {
+    activeTab,
+    handleTabChange,
+    dailyReportMd,
+    weeklyReportMd,
+    tickets,
+    parseMarkdownToHtml,
+    handleCopyReport,
+    handleDownloadReport,
+    handlePublishConfluence,
+    isDownloading,
+  } = useReportActions();
+
   // 저장 (상태 변경 시)
   const handleKeywordChange = (value: string) => {
     setSearchKeyword(value);
@@ -98,19 +111,6 @@ export default function ReportSection() {
       return next;
     });
   };
-
-  const {
-    activeTab,
-    handleTabChange,
-    dailyReportMd,
-    weeklyReportMd,
-    tickets,
-    parseMarkdownToHtml,
-    handleCopyReport,
-    handleDownloadReport,
-    handlePublishConfluence,
-    isDownloading,
-  } = useReportActions();
 
   useEffect(() => {
     if (!isDownloading) return;

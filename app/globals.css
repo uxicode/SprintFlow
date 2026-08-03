@@ -405,7 +405,7 @@ input:checked+.slider:before {
   display: flex;
   flex-direction: column;
   gap: 2rem;
-  overflow-y: auto;
+  /* overflow-y: auto; */
   max-width: calc(100vw - 320px);
   transition: max-width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -944,8 +944,8 @@ input:checked+.slider:before {
   border-radius: var(--radius-md);
   padding: 2rem;
   min-height: 400px;
-  max-height: 800px;
-  overflow-y: auto;
+  /* max-height: 800px; */
+  /* overflow-y: auto; */
   overflow-x: auto;
   font-family: inherit;
 }
@@ -2864,10 +2864,11 @@ select.select-input:focus {
 
 /* Genie Container Styles */
 .genie-container {
-  will-change: transform, opacity;
+  /* position: sticky 동작 방해(Containing Block 생성) 방지를 위해 드래그 중에만 transform 적용 */
 }
 
 .genie-container.is-dragging {
+  will-change: transform, opacity;
   box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(0, 242, 254, 0.3);
   opacity: 0.9;
   z-index: 1000;
@@ -3082,8 +3083,13 @@ select.select-input:focus {
 
 /* 주간 보고서 태그 칩 필터 컨트롤 */
 .weekly-filter-controls {
-  padding: 0.75rem 1.5rem;
-  background: rgba(255, 255, 255, 0.02);
+  position: sticky;
+  top: 0; /* main-content 상단 스크롤 위치에 맞춰 고정 */
+  z-index: 20; /* 스크롤 시 보고서 텍스트 위에 떠 있도록 */
+  margin: 0 -1.75rem 1.5rem -1.75rem; /* 부모 card 패딩 영역에 맞게 꽉 채움 */
+  padding: 0.85rem 1.75rem;
+  background: rgba(20, 20, 36, 0.05); /* 아래 글자가 비치지 않는 불투명 다크 Glassmorphism */
+  backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
