@@ -671,8 +671,13 @@ export function processEpicSearchGroup(sectionText: string, searchKeyword: strin
         cleanMeta = cleanMeta.replace(/^:\s*/, '').trim();
 
         const subHeaderMeta = cleanMeta ? `: ${cleanMeta}` : '';
-        rebuilt += `#### ${subTitle}${subHeaderMeta}\n`;
-        rebuilt += b.content.join('\n').trim() + '\n\n';
+        const cleanContent = b.content.join('\n').trim();
+        rebuilt += `+ ${subTitle}${subHeaderMeta}\n`;
+        if (cleanContent) {
+          rebuilt += `${cleanContent}\n\n`;
+        } else {
+          rebuilt += '\n';
+        }
       });
     }
   });
@@ -681,11 +686,12 @@ export function processEpicSearchGroup(sectionText: string, searchKeyword: strin
   if (remainingBlocks.length > 0) {
     rebuilt += `### 📁 기타 에픽 목록\n\n`;
     remainingBlocks.forEach(b => {
-      rebuilt += `${b.rawHeader}\n${b.content.join('\n').trim()}\n\n`;
+      const cleanContent = b.content.join('\n').trim();
+      rebuilt += `${b.rawHeader}\n${cleanContent}\n\n`;
     });
   }
 
-  return rebuilt;
+  return rebuilt.replace(/\n{3,}/g, '\n\n').trim();
 }
 
 interface CategoryInfo {
@@ -1232,7 +1238,10 @@ export function applyWeeklyReportFilter(
     result = applyWeeklyReportTagFilters(result, tagFilters);
   }
 
-  return result;
+  // 리스트 항목(* 또는 -) 간의 불필요한 빈 줄 제거
+  result = result.replace(/^(\s*[*|-]\s+.*?)\n{2,}(?=\s*[*|-])/gm, '$1\n');
+
+  return result.replace(/\n{3,}/g, '\n\n').trim() + '\n';
 }
 
 export class ReportContext {

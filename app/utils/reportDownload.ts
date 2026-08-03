@@ -33,9 +33,7 @@ function renderEpicSection(
   sortedEpicKeys.forEach(epicKey => {
     const epic = epicsMap[epicKey];
     const epicMeta = formatEpicScheduleMeta(epicScheduleByKey.get(epicKey));
-    section += epicKey === 'NO_EPIC'
-      ? `#### ${epic.summary}${epicMeta}\n`
-      : `#### ${epic.summary}${epicMeta}\n`;
+    section += `+ ${epic.summary}${epicMeta}\n`;
 
     epic.tickets.forEach(t => {
       let summary = (t.summary || '').trim();
@@ -66,7 +64,10 @@ export function cleanWeeklyDownloadMarkdown(markdown: string): string {
 
   let cleaned = markdown;
 
-  // 1. 에픽 타이틀 정제 (단, 마크다운 표 헤더/메트릭스 제목 등은 훼손 없이 원본 보존!)
+  // 1. 연속된 3개 이상의 개행(\n\n\n+)을 2개(\n\n)로 1차 압축
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+
+  // 2. 에픽 타이틀 정제 (단, 마크다운 표 헤더/메트릭스 제목 등은 훼손 없이 원본 보존!)
   cleaned = cleaned.replace(
     /^(?:###|####)\s*(?:🏷️\s*)?(?:에픽:\s*)?(.*?)\s*(?:\([A-Z0-9]+-[0-9]+\))?(?:\s*(?:—|:)\s*(\d{1,2}\/\d{1,2}\s*~\s*\d{1,2}\/\d{1,2}))?(?:\s*\|.*)?$/gm,
     (_match, summary, dateRange) => {
@@ -87,20 +88,26 @@ export function cleanWeeklyDownloadMarkdown(markdown: string): string {
       let cleanSummary = trimmedSummary.split(/\s*\|/)[0].trim();
       cleanSummary = cleanSummary.replace(/\s*—\s*$/, '').trim();
       if (dateRange) {
-        return `#### ${cleanSummary}: ${dateRange}`;
+        return `+ ${cleanSummary}: ${dateRange}`;
       }
-      return `#### ${cleanSummary}`;
+      return `+ ${cleanSummary}`;
     }
   );
 
-  // 2. 에픽 날짜 정제
+  // 3. 헤더(# ~ ####) 바로 뒤에 오는 과도한 빈 줄 제거 (타이틀과 상세 텍스트 간격 밀착)
+  cleaned = cleaned.replace(/^(#{1,6}\s+.*?)\n{2,}/gm, '$1\n');
+
+  // 4. 리스트 항목(* 또는 -)과 다음 리스트 항목 사이의 불필요한 빈 줄 제거 (리스트 촘촘하게 결합)
+  cleaned = cleaned.replace(/^(\s*[*|-]\s+.*?)\n{2,}(?=\s*[*|-])/gm, '$1\n');
+
+  // 5. 에픽 날짜 정제
   cleaned = cleaned.replace(/(\d{2})\.(\d{2})\.(\d{2})\s*~\s*(\d{2})\.(\d{2})\.(\d{2})/g, (_match, _y1, m1, d1, _y2, m2, d2) => {
     const startMD = `${parseInt(m1, 10)}/${parseInt(d1, 10)}`;
     const endMD = `${parseInt(m2, 10)}/${parseInt(d2, 10)}`;
     return `${startMD} ~${endMD}`;
   });
 
-  // 3. 티켓 항목 라인 단위 정제 (표 '|' 라인은 100% 보존)
+  // 5. 티켓 항목 라인 단위 정제 (표 '|' 라인은 100% 보존)
   const lines = cleaned.split('\n');
   const processedLines = lines.map(line => {
     if (line.trim().startsWith('|')) {
@@ -164,7 +171,8 @@ export function cleanWeeklyDownloadMarkdown(markdown: string): string {
     return lineContent;
   });
 
-  return processedLines.join('\n');
+  const result = processedLines.join('\n');
+  return result.replace(/\n{3,}/g, '\n\n').trim();
 }
 
 export function buildWeeklyDownloadMarkdown(params: BuildWeeklyDownloadParams): string {
