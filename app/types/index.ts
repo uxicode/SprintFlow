@@ -481,7 +481,7 @@ export interface TodoItem {
   startHour: number; // e.g. 9.5 (09:30)
   endHour: number; // e.g. 10.5 (10:30)
   color?: string;
-  category?: '일정' | '할 일' | '부재 중' | '약속 일정';
+  category?: '할 일' | '일정';
   notes?: string;
   location?: string;
 }

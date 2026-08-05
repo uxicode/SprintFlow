@@ -12,12 +12,10 @@ const STORAGE_KEY = 'sprintflow_todo_events';
 const HOUR_HEIGHT = 52; // 1시간당 52px
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
-const DEFAULT_COLOR = '#0d9488'; // teal accent
+const DEFAULT_COLOR = '#3b82f6'; // blue accent ('할 일' 기본)
 const CATEGORY_COLORS: Record<string, string> = {
-  '일정': '#0d9488',
   '할 일': '#3b82f6',
-  '부재 중': '#f59e0b',
-  '약속 일정': '#8b5cf6',
+  '일정': '#0d9488',
 };
 
 function formatHourLabel(h: number): string {
@@ -142,8 +140,8 @@ export default function TodoCalendarPanel() {
       date: selectedDate,
       startHour: defaultStartHour,
       endHour: Math.min(defaultStartHour + 1, 24),
-      category: '일정',
-      color: CATEGORY_COLORS['일정'],
+      category: '할 일',
+      color: CATEGORY_COLORS['할 일'],
       notes: '',
       location: '',
     });
@@ -186,8 +184,8 @@ export default function TodoCalendarPanel() {
       date: editingItem.date || selectedDate,
       startHour: startH,
       endHour: endH,
-      category: editingItem.category || '일정',
-      color: editingItem.color || CATEGORY_COLORS[editingItem.category || '일정'] || DEFAULT_COLOR,
+      category: editingItem.category || '할 일',
+      color: editingItem.color || CATEGORY_COLORS[editingItem.category || '할 일'] || DEFAULT_COLOR,
       notes: editingItem.notes || '',
       location: editingItem.location || '',
     };
@@ -504,7 +502,7 @@ export default function TodoCalendarPanel() {
                 <div className="todo-detail-info-group">
                   <div className="todo-detail-info-row">
                     <span className="todo-detail-icon">🏷️</span>
-                    <span className="todo-detail-badge">{editingItem.category || '일정'}</span>
+                    <span className="todo-detail-badge">{editingItem.category || '할 일'}</span>
                   </div>
                   <div className="todo-detail-info-row">
                     <span className="todo-detail-icon">🕒</span>
@@ -567,7 +565,7 @@ export default function TodoCalendarPanel() {
 
                   {/* 카테고리 탭 선택 */}
                   <div className="todo-category-tabs">
-                    {(['일정', '할 일', '부재 중', '약속 일정'] as const).map((cat) => (
+                    {(['할 일', '일정'] as const).map((cat) => (
                       <button
                         key={cat}
                         type="button"

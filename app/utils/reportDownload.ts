@@ -59,120 +59,167 @@ function renderEpicSection(
   return section;
 }
 
-export function cleanWeeklyDownloadMarkdown(markdown: string): string {
-  if (!markdown) return '';
+export class MarkdownCleanerBuilder {
+  private content: string;
 
-  let cleaned = markdown;
+  constructor(content: string) {
+    this.content = content || '';
+  }
 
   // 1. 연속된 3개 이상의 개행(\n\n\n+)을 2개(\n\n)로 1차 압축
-  cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+  compressNewlines(): this {
+    this.content = this.content.replace(/\n{3,}/g, '\n\n');
+    return this;
+  }
 
-  // 2. 에픽 타이틀 정제 (단, 마크다운 표 헤더/메트릭스 제목 등은 훼손 없이 원본 보존!)
-  cleaned = cleaned.replace(
-    /^(?:###|####)\s*(?:🏷️\s*)?(?:에픽:\s*)?(.*?)\s*(?:\([A-Z0-9]+-[0-9]+\))?(?:\s*(?:—|:)\s*(\d{1,2}\/\d{1,2}\s*~\s*\d{1,2}\/\d{1,2}))?(?:\s*\|.*)?$/gm,
-    (_match, summary, dateRange) => {
-      const trimmedSummary = (summary || '').trim();
-      if (
-        !trimmedSummary ||
-        trimmedSummary.includes('📊') ||
-        trimmedSummary.includes('📈') ||
-        trimmedSummary.includes('에픽별 진행 현황') ||
-        trimmedSummary.includes('진행 상태 메트릭스') ||
-        trimmedSummary.includes('보고서 요약') ||
-        trimmedSummary.includes('상세 업무 진행') ||
-        trimmedSummary.includes('주요 계획')
-      ) {
-        return _match;
-      }
-
-      let cleanSummary = trimmedSummary.split(/\s*\|/)[0].trim();
-      cleanSummary = cleanSummary.replace(/\s*—\s*$/, '').trim();
-      if (dateRange) {
-        return `+ ${cleanSummary}: ${dateRange}`;
-      }
-      return `+ ${cleanSummary}`;
-    }
-  );
-
-  // 3. 헤더(# ~ ####) 바로 뒤에 오는 과도한 빈 줄 제거 (타이틀과 상세 텍스트 간격 밀착)
-  cleaned = cleaned.replace(/^(#{1,6}\s+.*?)\n{2,}/gm, '$1\n');
-
-  // 4. 리스트 항목(* 또는 -)과 다음 리스트 항목 사이의 불필요한 빈 줄 제거 (리스트 촘촘하게 결합)
-  cleaned = cleaned.replace(/^(\s*[*|-]\s+.*?)\n{2,}(?=\s*[*|-])/gm, '$1\n');
-
-  // 5. 에픽 날짜 정제
-  cleaned = cleaned.replace(/(\d{2})\.(\d{2})\.(\d{2})\s*~\s*(\d{2})\.(\d{2})\.(\d{2})/g, (_match, _y1, m1, d1, _y2, m2, d2) => {
-    const startMD = `${parseInt(m1, 10)}/${parseInt(d1, 10)}`;
-    const endMD = `${parseInt(m2, 10)}/${parseInt(d2, 10)}`;
-    return `${startMD} ~${endMD}`;
-  });
-
-  // 5. 티켓 항목 라인 단위 정제 (표 '|' 라인은 100% 보존)
-  const lines = cleaned.split('\n');
-  const processedLines = lines.map(line => {
-    if (line.trim().startsWith('|')) {
-      return line;
-    }
-
-    if (!line.trim().startsWith('*') && !line.trim().startsWith('-')) {
-      return line;
-    }
-
-    let lineContent = line;
-
-    // 아이콘 제거 (* ✅ , * 🔄 , * ⏱️ 등)
-    lineContent = lineContent.replace(/^(\s*[*|-]\s*)(?:✅|🔄|⏱️|⏱|🟢)\s*/, '$1');
-
-    // 마크다운 링크 및 티켓키 제거
-    lineContent = lineContent.replace(/\[(?:[A-Z0-9]+-[0-9]+:\s*)?(.*?)\]\([^)]*\)/g, '$1');
-
-    // 남아있는 티켓키 제거
-    lineContent = lineContent.replace(/\b[A-Z0-9]+-[0-9]+:\s*/g, '');
-
-    // 파트 태그 제거: (BE), (FE), (MO)
-    lineContent = lineContent.replace(/\((?:BE|FE|MO)\)\s*/gi, '');
-
-    // 에픽 꼬리표 정보 제거
-    lineContent = lineContent.replace(/ \*\(에픽:.*?\)\*/g, '');
-
-    // 메타 데이터 포맷 정제
-    lineContent = lineContent.replace(/\(([^)]*?)\)$/, (match, inner) => {
-      if (!/완료|진행|Done|In Progress|기한|갱신일|담당자/.test(inner)) {
-        return match;
-      }
-
-      let statusStr = '완료';
-      if (/In Progress|진행 중|진행/i.test(inner)) {
-        statusStr = '진행 중';
-      } else if (/To Do|대기 중|할일/i.test(inner)) {
-        statusStr = '대기 중';
-      } else if (/Done|완료/i.test(inner)) {
-        statusStr = '완료';
-      }
-
-      let dateStr = '';
-      const dueMatch = inner.match(/기한:\s*(\d{2})\.(\d{2})|기한:\s*(\d{1,2})\/(\d{1,2})/);
-      const dateMatch = dueMatch;
-
-      if (dateMatch) {
-        const month = parseInt(dateMatch[1] || dateMatch[3], 10);
-        const day = parseInt(dateMatch[2] || dateMatch[4], 10);
-        dateStr = `${month}/${day}`;
-      } else {
-        const genericDate = inner.match(/(\d{1,2})\/(\d{1,2})/);
-        if (genericDate) {
-          dateStr = `${parseInt(genericDate[1], 10)}/${parseInt(genericDate[2], 10)}`;
+  // 2. 에픽 타이틀 정제 (+ 접두사 부여 및 에픽 메타 정리)
+  cleanEpicTitles(): this {
+    this.content = this.content.replace(
+      /^(?:###|####)\s*(?:🏷️\s*)?(?:에픽:\s*)?(.*?)\s*(?:\([A-Z0-9]+-[0-9]+\))?(?:\s*(?:—|:)\s*(\d{1,2}\/\d{1,2}\s*~\s*\d{1,2}\/\d{1,2}))?(?:\s*\|.*)?$/gm,
+      (_match, summary, dateRange) => {
+        const trimmedSummary = (summary || '').trim();
+        if (
+          !trimmedSummary ||
+          trimmedSummary.includes('📊') ||
+          trimmedSummary.includes('📈') ||
+          trimmedSummary.includes('에픽별 진행 현황') ||
+          trimmedSummary.includes('진행 상태 메트릭스') ||
+          trimmedSummary.includes('보고서 요약') ||
+          trimmedSummary.includes('상세 업무 진행') ||
+          trimmedSummary.includes('주요 계획')
+        ) {
+          return _match;
         }
+
+        let cleanSummary = trimmedSummary.split(/\s*\|/)[0].trim();
+        cleanSummary = cleanSummary.replace(/\s*—\s*$/, '').trim();
+        if (dateRange) {
+          return `+ ${cleanSummary}: ${dateRange}`;
+        }
+        return `+ ${cleanSummary}`;
       }
+    );
+    return this;
+  }
 
-      return dateStr ? `(${statusStr}- ${dateStr})` : `(${statusStr})`;
-    });
+  // 3. 헤더 및 불릿 리스트 간격 밀착
+  tightenSpacing(): this {
+    this.content = this.content
+      .replace(/^(#{1,6}\s+.*?)\n{2,}/gm, '$1\n')
+      .replace(/^(\s*[*|-]\s+.*?)\n{2,}(?=\s*[*|-])/gm, '$1\n');
+    return this;
+  }
 
-    return lineContent;
+  // 4. 에픽 날짜 정제 (YY.MM.DD -> M/D)
+  formatEpicDates(): this {
+    this.content = this.content.replace(
+      /(\d{2})\.(\d{2})\.(\d{2})\s*~\s*(\d{2})\.(\d{2})\.(\d{2})/g,
+      (_match, _y1, m1, d1, _y2, m2, d2) => `${parseInt(m1, 10)}/${parseInt(d1, 10)} ~${parseInt(m2, 10)}/${parseInt(d2, 10)}`
+    );
+    return this;
+  }
+
+  // 5. 티켓 항목 라인 단위 세부 정제 (순수 함수 파이프라인으로 0-객체 생성 최적화)
+  cleanTicketLines(): this {
+    const lines = this.content.split('\n');
+    this.content = lines.map(cleanSingleTicketLine).join('\n');
+    return this;
+  }
+
+  // 빌드 완료 및 최종 개행 조율 문자열 반환
+  build(): string {
+    return this.content.replace(/\n{3,}/g, '\n\n').trim();
+  }
+}
+
+// ============================================================================
+// 단일 티켓 행 정제용 순수 변환 함수 (Zero-Allocation Pure Utilities)
+// ============================================================================
+
+function isTicketLine(line: string): boolean {
+  const trimmed = line.trim();
+  if (trimmed.startsWith('|')) {
+    return false;
+  }
+  return trimmed.startsWith('*') || trimmed.startsWith('-');
+}
+
+function removeTicketStatusIcons(line: string): string {
+  return line.replace(/^(\s*[*|-]\s*)(?:✅|🔄|⏱️|⏱|🟢)\s*/, '$1');
+}
+
+function removeTicketLinksAndKeys(line: string): string {
+  return line
+    .replace(/\[(?:[A-Z0-9]+-[0-9]+:\s*)?(.*?)\]\([^)]*\)/g, '$1')
+    .replace(/\b[A-Z0-9]+-[0-9]+:\s*/g, '');
+}
+
+function removeTicketPartTags(line: string): string {
+  return line.replace(/\((?:BE|FE|MO)\)\s*/gi, '');
+}
+
+function removeTicketEpicMeta(line: string): string {
+  return line.replace(/ \*\(에픽:.*?\)\*/g, '');
+}
+
+function formatTicketStatusAndDate(line: string): string {
+  return line.replace(/\(([^)]*?)\)$/, (match, inner) => {
+    if (!/완료|진행|Done|In Progress|기한|갱신일|담당자/.test(inner)) {
+      return match;
+    }
+
+    let statusStr = '완료';
+    if (/In Progress|진행 중|진행/i.test(inner)) {
+      statusStr = '진행 중';
+    } else if (/To Do|대기 중|할일/i.test(inner)) {
+      statusStr = '대기 중';
+    } else if (/Done|완료/i.test(inner)) {
+      statusStr = '완료';
+    }
+
+    let dateStr = '';
+    const dueMatch = inner.match(/기한:\s*(\d{2})\.(\d{2})|기한:\s*(\d{1,2})\/(\d{1,2})/);
+
+    if (dueMatch) {
+      const month = parseInt(dueMatch[1] || dueMatch[3], 10);
+      const day = parseInt(dueMatch[2] || dueMatch[4], 10);
+      dateStr = `${month}/${day}`;
+    } else {
+      const genericDate = inner.match(/(\d{1,2})\/(\d{1,2})/);
+      if (genericDate) {
+        dateStr = `${parseInt(genericDate[1], 10)}/${parseInt(genericDate[2], 10)}`;
+      }
+    }
+
+    return dateStr ? `(${statusStr}- ${dateStr})` : `(${statusStr})`;
   });
+}
 
-  const result = processedLines.join('\n');
-  return result.replace(/\n{3,}/g, '\n\n').trim();
+function cleanSingleTicketLine(line: string): string {
+  if (!isTicketLine(line)) {
+    return line;
+  }
+
+  return formatTicketStatusAndDate(
+    removeTicketEpicMeta(
+      removeTicketPartTags(
+        removeTicketLinksAndKeys(
+          removeTicketStatusIcons(line)
+        )
+      )
+    )
+  );
+}
+
+export function cleanWeeklyDownloadMarkdown(markdown: string): string {
+  if (!markdown) return '';
+  return new MarkdownCleanerBuilder(markdown)
+    .compressNewlines()
+    .cleanEpicTitles()
+    .tightenSpacing()
+    .formatEpicDates()
+    .cleanTicketLines()
+    .build();
 }
 
 export function buildWeeklyDownloadMarkdown(params: BuildWeeklyDownloadParams): string {
