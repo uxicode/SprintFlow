@@ -42,5 +42,16 @@
     "color": "#3b82f6",
     "notes": "",
     "location": ""
+  },
+  {
+    "id": "todo-1785895967864-1ic7r",
+    "title": "안과 협진 (비일만시 회송절차제거)",
+    "date": "2026-08-05",
+    "startHour": 11,
+    "endHour": 12,
+    "category": "일정",
+    "color": "#0d9488",
+    "notes": "",
+    "location": ""
   }
 ]
