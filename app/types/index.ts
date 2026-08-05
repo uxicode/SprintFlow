@@ -595,5 +595,5 @@ export interface WeeklyReportTagFilters {
   hidePosition: boolean;
   hideDueDate: boolean;
   hideAssignee: boolean;
-  groupCategory: boolean;
+  hideIcon: boolean;
 }

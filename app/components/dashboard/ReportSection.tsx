@@ -39,7 +39,7 @@ export default function ReportSection() {
       hidePosition: false,
       hideDueDate: false,
       hideAssignee: false,
-      groupCategory: false,
+      hideIcon: false,
     };
   });
 
@@ -90,6 +90,30 @@ export default function ReportSection() {
     if (typeof window !== 'undefined') {
       localStorage.removeItem(SEARCH_KEYWORD_STORAGE_KEY);
     }
+  };
+
+  const isAllTagFiltersSelected =
+    tagFilters.hideTicketNumber &&
+    tagFilters.hidePosition &&
+    tagFilters.hideDueDate &&
+    tagFilters.hideAssignee &&
+    tagFilters.hideIcon;
+
+  const handleToggleAllTagFilters = () => {
+    setTagFilters(() => {
+      const nextValue = !isAllTagFiltersSelected;
+      const next: WeeklyReportTagFilters = {
+        hideTicketNumber: nextValue,
+        hidePosition: nextValue,
+        hideDueDate: nextValue,
+        hideAssignee: nextValue,
+        hideIcon: nextValue,
+      };
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(TAG_FILTERS_STORAGE_KEY, JSON.stringify(next));
+      }
+      return next;
+    });
   };
 
   const handleToggleTagFilter = (key: keyof WeeklyReportTagFilters) => {
@@ -246,6 +270,17 @@ export default function ReportSection() {
                   <div className="tag-chips-group">
                     <button
                       type="button"
+                      className={`tag-chip ${isAllTagFiltersSelected ? 'active' : ''}`}
+                      onClick={handleToggleAllTagFilters}
+                      title={isAllTagFiltersSelected ? '모든 항목 숨김 필터를 해제합니다' : '모든 항목 숨김 필터를 선택합니다'}
+                    >
+                      <span className="chip-icon">✨</span>
+                      <span>{isAllTagFiltersSelected ? '전체 해제' : '모두 선택'}</span>
+                      {isAllTagFiltersSelected && <span className="chip-badge">전체</span>}
+                    </button>
+
+                    <button
+                      type="button"
                       className={`tag-chip ${tagFilters.hideTicketNumber ? 'active' : ''}`}
                       onClick={() => handleToggleTagFilter('hideTicketNumber')}
                       title="활성화 시 티켓넘버(예: DI26-625:)를 텍스트에서 숨깁니다"
@@ -290,13 +325,13 @@ export default function ReportSection() {
 
                     <button
                       type="button"
-                      className={`tag-chip ${tagFilters.groupCategory ? 'active' : ''}`}
-                      onClick={() => handleToggleTagFilter('groupCategory')}
-                      title="활성화 시 동일한 카테고리를 가진 항목들을 하나로 묶어 표현합니다"
+                      className={`tag-chip ${tagFilters.hideIcon ? 'active' : ''}`}
+                      onClick={() => handleToggleTagFilter('hideIcon')}
+                      title="활성화 시 티켓 앞의 상태 아이콘(✅, 🔄, ⏱️ 등)을 숨깁니다"
                     >
-                      <span className="chip-icon">📂</span>
-                      <span>카테고리 중복</span>
-                      {tagFilters.groupCategory && <span className="chip-badge">그룹</span>}
+                      <span className="chip-icon">🎯</span>
+                      <span>아이콘</span>
+                      {tagFilters.hideIcon && <span className="chip-badge">숨김</span>}
                     </button>
                   </div>
                 </div>

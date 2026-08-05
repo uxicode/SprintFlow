@@ -672,7 +672,8 @@ export function processEpicSearchGroup(sectionText: string, searchKeyword: strin
 
         const subHeaderMeta = cleanMeta ? `: ${cleanMeta}` : '';
         const cleanContent = b.content.join('\n').trim();
-        rebuilt += `+ ${subTitle}${subHeaderMeta}\n`;
+        // 에픽 묶음 처리 및 - 표시
+        rebuilt += ` - ${subTitle}${subHeaderMeta}\n`;
         if (cleanContent) {
           rebuilt += `${cleanContent}\n\n`;
         } else {
@@ -1037,25 +1038,30 @@ export function applyWeeklyReportTagFilters(
       !tagFilters.hidePosition &&
       !tagFilters.hideDueDate &&
       !tagFilters.hideAssignee &&
-      !tagFilters.groupCategory)
+      !tagFilters.hideIcon)
   ) {
     return weeklyMd;
   }
 
-  const { hideTicketNumber, hidePosition, hideDueDate, hideAssignee, groupCategory } = tagFilters;
+  const { hideTicketNumber, hidePosition, hideDueDate, hideAssignee, hideIcon } = tagFilters;
   const lines = weeklyMd.split('\n');
 
-  // 1. 라인 단위 텍스트 요법(티켓넘버, 포지션, 기한, 담당자) 숨김 처리 (단, 표 '|' 라인은 100% 유지)
+  // 1. 라인 단위 텍스트 요법(티켓넘버, 포지션, 기한, 담당자, 아이콘) 숨김 처리 (단, 표 '|' 라인은 100% 유지)
   const processedLines = lines.map((line) => {
     if (line.trim().startsWith('|')) {
       return line;
     }
 
-    if (!line || (!line.includes('[') && !line.includes(':') && !line.includes('('))) {
-      return line;
+    let result = line;
+
+    // 0) 상태 아이콘 제거 (e.g. "* ✅ ", "* 🔄 ", "* ⏱️ ", "* 🟢 ")
+    if (hideIcon) {
+      result = result.replace(/^(\s*[*|-]\s*)(?:✅|🔄|⏱️|⏱|🟢)\s*/, '$1');
     }
 
-    let result = line;
+    if (!result || (!result.includes('[') && !result.includes(':') && !result.includes('('))) {
+      return result;
+    }
 
     // 1) 티켓 넘버 제거 (e.g. "DI26-625: ", "[DI26-625: ")
     if (hideTicketNumber) {
@@ -1086,23 +1092,7 @@ export function applyWeeklyReportTagFilters(
     return result;
   });
 
-  const processedText = processedLines.join('\n');
-
-  if (!groupCategory) {
-    return processedText;
-  }
-
-  // 2. 카테고리 중복 묶기 (오직 Section 3 [에픽별 상세 업무] 및 Section 4 [다음 주 주요 계획] 티켓에만 독점 적용)
-  const sections = processedText.split(/(?=^## )/m);
-  return sections
-    .map((section) => {
-      if (section.startsWith('## 📋 3.') || section.startsWith('## 🚀 4.')) {
-        const secLines = section.split('\n');
-        return groupCategoryLines(secLines);
-      }
-      return section;
-    })
-    .join('');
+  return processedLines.join('\n');
 }
 
 export function sortWeeklyReportEpics(
@@ -1122,14 +1112,18 @@ export function sortWeeklyReportEpics(
     const tableRowsText = match[2].trim();
     const ending = match[3];
 
+    // '에픽 없음' 항목은 항상 마지막에 고정
     const rows = tableRowsText.split('\n').filter((r) => r.trim().startsWith('|'));
 
+    // 
     const parseRow = (row: string) => {
+      // | **에픽 타이틀** | 08/15 | ... | **100%** | => ["**에픽 타이틀**", "08/15", "...", "**100%**"]
       const cols = row.split('|').map((c) => c.trim()).filter(Boolean);
       const epicTitle = (cols[0] || '').replace(/\*\*/g, '').trim();
       const dueDate = cols[1] || '';
       const totalProgCol = cols[5] || '';
 
+      // 퍼센테이지 추출
       const progMatch = totalProgCol.match(/(\d+)%/);
       const progress = progMatch ? parseInt(progMatch[1], 10) : 0;
 
@@ -1176,14 +1170,17 @@ export function sortWeeklyReportEpics(
     const sec3Header = matchSec3[1];
     const sec3Body = matchSec3[2];
 
+    // 정규표현식을 사용해서 '## 📋 3. 에픽별 상세 업무 진행 현황' 섹션을 기준으로 자르고, 각 블록을 필터링하는 것
     const epicBlocks = sec3Body.split(/(?=^### 🏷️)/m).filter((b) => b.trim().length > 0);
 
+    // 에픽 블록 파싱
     const parseBlock = (block: string) => {
       const firstLine = block.split('\n')[0] || '';
       const cleanTitle = firstLine.replace(/^### 🏷️\s*(?:에픽:\s*)?/, '').trim();
       return { block, title: cleanTitle };
     };
 
+    // 에픽별 정렬 기능 추가
     const parsedBlocks = epicBlocks.map(parseBlock);
 
     parsedBlocks.sort((a, b) => {

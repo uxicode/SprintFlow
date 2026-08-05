@@ -33,7 +33,7 @@ function renderEpicSection(
   sortedEpicKeys.forEach(epicKey => {
     const epic = epicsMap[epicKey];
     const epicMeta = formatEpicScheduleMeta(epicScheduleByKey.get(epicKey));
-    section += `+ ${epic.summary}${epicMeta}\n`;
+    section += `- ${epic.summary}${epicMeta}\n`;
 
     epic.tickets.forEach(t => {
       let summary = (t.summary || '').trim();
@@ -72,7 +72,7 @@ export class MarkdownCleanerBuilder {
     return this;
   }
 
-  // 2. 에픽 타이틀 정제 (+ 접두사 부여 및 에픽 메타 정리)
+  // 2. 에픽 타이틀 정제 (- 접두사 부여 및 에픽 메타 정리)
   cleanEpicTitles(): this {
     this.content = this.content.replace(
       /^(?:###|####)\s*(?:🏷️\s*)?(?:에픽:\s*)?(.*?)\s*(?:\([A-Z0-9]+-[0-9]+\))?(?:\s*(?:—|:)\s*(\d{1,2}\/\d{1,2}\s*~\s*\d{1,2}\/\d{1,2}))?(?:\s*\|.*)?$/gm,
@@ -94,9 +94,9 @@ export class MarkdownCleanerBuilder {
         let cleanSummary = trimmedSummary.split(/\s*\|/)[0].trim();
         cleanSummary = cleanSummary.replace(/\s*—\s*$/, '').trim();
         if (dateRange) {
-          return `+ ${cleanSummary}: ${dateRange}`;
+          return `- ${cleanSummary}: ${dateRange}`;
         }
-        return `+ ${cleanSummary}`;
+        return `- ${cleanSummary}`;
       }
     );
     return this;
