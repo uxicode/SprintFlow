@@ -1,5 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+function resolveAuthHeader(request: NextRequest): string | undefined {
+  const authHeader = request.headers.get('authorization');
+  if (authHeader) {
+    return authHeader;
+  }
+  const email = process.env.JIRA_EMAIL?.trim();
+  const token = process.env.JIRA_API_TOKEN?.trim();
+  if (email && token) {
+    const credential = Buffer.from(`${email}:${token}`).toString('base64');
+    return `Basic ${credential}`;
+  }
+  return undefined;
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const targetUrl = searchParams.get('url');
@@ -8,7 +22,7 @@ export async function GET(request: NextRequest) {
     return new NextResponse('Missing "url" query parameter', { status: 400 });
   }
 
-  const authHeader = request.headers.get('authorization');
+  const authHeader = resolveAuthHeader(request);
   
   const headers: Record<string, string> = {
     'Accept': request.headers.get('accept') || 'application/json',
@@ -51,7 +65,7 @@ export async function POST(request: NextRequest) {
     return new NextResponse('Missing "url" query parameter', { status: 400 });
   }
 
-  const authHeader = request.headers.get('authorization');
+  const authHeader = resolveAuthHeader(request);
   const bodyText = await request.text();
   
   const headers: Record<string, string> = {

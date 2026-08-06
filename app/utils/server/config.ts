@@ -27,10 +27,13 @@ export function getAppConfig(): AppConfig {
   const googleRefreshToken = process.env.GOOGLE_REFRESH_TOKEN?.trim() || '';
   const googleAccessToken = process.env.GOOGLE_ACCESS_TOKEN?.trim() || '';
 
+  const hasJiraCredentials = !!(jiraUrl && jiraEmail && jiraToken);
+  const hasCalendarCredentials = !!(calendarId && googleClientId && googleClientSecret && googleRefreshToken);
+
   return {
     jiraUrl,
-    jiraEmail,
-    jiraToken,
+    jiraEmail: '',
+    jiraToken: '',
     confluenceSpace: process.env.CONFLUENCE_SPACE?.trim() || '',
     confluenceParentId: process.env.CONFLUENCE_PARENT_ID?.trim() || '',
     projectKey: process.env.PROJECT_KEY?.trim() || '',
@@ -38,11 +41,11 @@ export function getAppConfig(): AppConfig {
     registeredMembers: registeredMembers.length > 0 ? registeredMembers : fallbackMembers,
     calendarId,
     googleClientId,
-    googleClientSecret,
-    googleRefreshToken,
-    googleAccessToken,
-    hasJiraCredentials: !!(jiraUrl && jiraEmail && jiraToken),
-    hasCalendarCredentials: !!(calendarId && googleClientId && googleClientSecret && googleRefreshToken),
+    googleClientSecret: '',
+    googleRefreshToken: '',
+    googleAccessToken: '',
+    hasJiraCredentials,
+    hasCalendarCredentials,
   };
 }
 

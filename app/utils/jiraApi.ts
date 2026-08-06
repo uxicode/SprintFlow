@@ -13,11 +13,18 @@ export async function fetchJiraTickets(
   modeToken: string,
   onProgress?: ProgressCallback,
 ): Promise<Ticket[]> {
-  if (!modeUrl || !modeEmail || !modeToken) {
-    throw new Error('Jira API 설정 정보가 누락되었습니다.');
+  if (!modeUrl) {
+    throw new Error('Jira API URL 정보가 누락되었습니다.');
   }
 
-  const credential = btoa(`${modeEmail}:${modeToken}`);
+  const reqHeaders: Record<string, string> = {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+  };
+  if (modeEmail && modeToken) {
+    reqHeaders['Authorization'] = `Basic ${btoa(`${modeEmail}:${modeToken}`)}`;
+  }
+
   let cleanUrl = modeUrl.trim();
   try {
     if (cleanUrl.toLowerCase().startsWith('http')) {
@@ -44,11 +51,7 @@ export async function fetchJiraTickets(
     console.log(`[Jira Fetch] GET /search/jql | page ${pageCount + 1}${nextPageToken ? ` | token: ${nextPageToken}` : ''}...`);
     const response = await fetch(apiEndpoint, {
       method: 'GET',
-      headers: {
-        Authorization: `Basic ${credential}`,
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
+      headers: reqHeaders,
     });
 
     if (!response.ok) {

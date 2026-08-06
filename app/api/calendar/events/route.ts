@@ -162,7 +162,9 @@ export async function POST(request: NextRequest) {
     // 1. Authorization code → token 교환
     // -------------------------------------------------------
     if (action === 'exchange') {
-      const { code, clientId, clientSecret } = body;
+      const code = body.code;
+      const clientId = body.clientId || process.env.GOOGLE_CLIENT_ID?.trim();
+      const clientSecret = body.clientSecret || process.env.GOOGLE_CLIENT_SECRET?.trim();
       if (!code || !clientId || !clientSecret) {
         return NextResponse.json(
           { error: 'code, clientId, clientSecret가 모두 필요합니다.' },
@@ -192,7 +194,9 @@ export async function POST(request: NextRequest) {
     // 2. Refresh token → 새 access_token 발급
     // -------------------------------------------------------
     if (action === 'refresh') {
-      const { refreshToken, clientId, clientSecret } = body;
+      const refreshToken = body.refreshToken || process.env.GOOGLE_REFRESH_TOKEN?.trim();
+      const clientId = body.clientId || process.env.GOOGLE_CLIENT_ID?.trim();
+      const clientSecret = body.clientSecret || process.env.GOOGLE_CLIENT_SECRET?.trim();
       if (!refreshToken || !clientId || !clientSecret) {
         return NextResponse.json(
           { error: 'refreshToken, clientId, clientSecret가 모두 필요합니다.' },
@@ -220,8 +224,12 @@ export async function POST(request: NextRequest) {
     // 3. 캘린더 이벤트 조회
     // -------------------------------------------------------
     if (action === 'events') {
-      const { accessToken, calendarId, timeMin, timeMax,
-              refreshToken, clientId, clientSecret } = body;
+      const calendarId = body.calendarId || process.env.CALENDAR_ID?.trim();
+      const accessToken = body.accessToken || process.env.GOOGLE_ACCESS_TOKEN?.trim();
+      const refreshToken = body.refreshToken || process.env.GOOGLE_REFRESH_TOKEN?.trim();
+      const clientId = body.clientId || process.env.GOOGLE_CLIENT_ID?.trim();
+      const clientSecret = body.clientSecret || process.env.GOOGLE_CLIENT_SECRET?.trim();
+      const { timeMin, timeMax } = body;
 
       if (!calendarId || !timeMin || !timeMax) {
         return NextResponse.json(

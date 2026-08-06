@@ -79,7 +79,7 @@ export async function fetchDashboardBundle({
   onProgress?.({ dot: 'success', text: '캘린더 연차 데이터 조회 중...' });
   let calendarEvents: DashboardBundle['calendarEvents'] = [];
   let calendarMeta: DashboardBundle['calendarMeta'] = null;
-  if (calendar.calendarId && (calendar.accessToken || calendar.refreshToken)) {
+  if (calendar.calendarId || calendar.accessToken || calendar.refreshToken) {
     const result = await fetchCalendarEvents({
       calId: calendar.calendarId,
       start: dateStart,

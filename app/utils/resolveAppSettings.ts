@@ -36,8 +36,8 @@ export function resolveAppSettings(
     local.calendarAccessToken ||
     '';
 
-  const hasJiraCredentials = !!(url && email && token);
-  const hasCalendarCredentials = !!(
+  const hasJiraCredentials = !!useEnvJira || !!(url && email && token);
+  const hasCalendarCredentials = !!useEnvCalendar || !!(
     calendarId &&
     calendarClientId &&
     calendarClientSecret &&
