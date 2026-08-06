@@ -108,5 +108,16 @@
     "color": "#3b82f6",
     "notes": "",
     "location": ""
+  },
+  {
+    "id": "todo-1785993909736-bypgl",
+    "title": "데이터 제거요청 > 다이아콘",
+    "date": "2026-08-06",
+    "startHour": 16,
+    "endHour": 16.5,
+    "category": "할 일",
+    "color": "#3b82f6",
+    "notes": "",
+    "location": ""
   }
 ]
