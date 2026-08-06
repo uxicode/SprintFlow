@@ -14,6 +14,8 @@ function requireEnv(name: string): string {
 }
 
 export function getAppConfig(): AppConfig {
+  const isProd = process.env.NODE_ENV === 'production';
+
   const teamMembers = process.env.TEAM_MEMBERS?.trim() || '';
   const registeredMembers = parseList(process.env.REGISTERED_MEMBERS);
   const fallbackMembers = parseList(teamMembers);
@@ -30,20 +32,42 @@ export function getAppConfig(): AppConfig {
   const hasJiraCredentials = !!(jiraUrl && jiraEmail && jiraToken);
   const hasCalendarCredentials = !!(calendarId && googleClientId && googleClientSecret && googleRefreshToken);
 
+  if (isProd) {
+    // Vercel 웹 배포 (Production) 환경에서는 모든 환경 변수를 은닉/마스킹
+    return {
+      jiraUrl: '',
+      jiraEmail: '',
+      jiraToken: '',
+      confluenceSpace: '',
+      confluenceParentId: '',
+      projectKey: process.env.PROJECT_KEY?.trim() || '',
+      teamMembers: '',
+      registeredMembers: [],
+      calendarId: '',
+      googleClientId: '',
+      googleClientSecret: '',
+      googleRefreshToken: '',
+      googleAccessToken: '',
+      hasJiraCredentials,
+      hasCalendarCredentials,
+    };
+  }
+
+  // 로컬 개발 (Development) 환경에서는 .env.local의 설정값을 그대로 연동 제공
   return {
-    jiraUrl: '',
-    jiraEmail: '',
-    jiraToken: '',
-    confluenceSpace: '',
-    confluenceParentId: '',
+    jiraUrl,
+    jiraEmail,
+    jiraToken,
+    confluenceSpace: process.env.CONFLUENCE_SPACE?.trim() || '',
+    confluenceParentId: process.env.CONFLUENCE_PARENT_ID?.trim() || '',
     projectKey: process.env.PROJECT_KEY?.trim() || '',
-    teamMembers: '',
-    registeredMembers: [],
-    calendarId: '',
-    googleClientId: '',
-    googleClientSecret: '',
-    googleRefreshToken: '',
-    googleAccessToken: '',
+    teamMembers,
+    registeredMembers: registeredMembers.length > 0 ? registeredMembers : fallbackMembers,
+    calendarId,
+    googleClientId,
+    googleClientSecret,
+    googleRefreshToken,
+    googleAccessToken,
     hasJiraCredentials,
     hasCalendarCredentials,
   };
