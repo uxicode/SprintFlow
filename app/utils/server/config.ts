@@ -31,16 +31,16 @@ export function getAppConfig(): AppConfig {
   const hasCalendarCredentials = !!(calendarId && googleClientId && googleClientSecret && googleRefreshToken);
 
   return {
-    jiraUrl,
+    jiraUrl: '',
     jiraEmail: '',
     jiraToken: '',
-    confluenceSpace: process.env.CONFLUENCE_SPACE?.trim() || '',
-    confluenceParentId: process.env.CONFLUENCE_PARENT_ID?.trim() || '',
+    confluenceSpace: '',
+    confluenceParentId: '',
     projectKey: process.env.PROJECT_KEY?.trim() || '',
-    teamMembers,
-    registeredMembers: registeredMembers.length > 0 ? registeredMembers : fallbackMembers,
-    calendarId,
-    googleClientId,
+    teamMembers: '',
+    registeredMembers: [],
+    calendarId: '',
+    googleClientId: '',
     googleClientSecret: '',
     googleRefreshToken: '',
     googleAccessToken: '',

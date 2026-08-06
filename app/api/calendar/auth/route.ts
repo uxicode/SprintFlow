@@ -16,7 +16,8 @@ interface CalendarAuthRequestBody {
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as CalendarAuthRequestBody;
-    const { clientId, calendarId } = body;
+    const clientId = body.clientId || process.env.GOOGLE_CLIENT_ID?.trim();
+    const calendarId = body.calendarId || process.env.CALENDAR_ID?.trim();
 
     if (!clientId) {
       return NextResponse.json(
