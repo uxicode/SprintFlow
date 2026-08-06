@@ -13,10 +13,6 @@ export async function fetchJiraTickets(
   modeToken: string,
   onProgress?: ProgressCallback,
 ): Promise<Ticket[]> {
-  if (!modeUrl) {
-    throw new Error('Jira API URL 정보가 누락되었습니다.');
-  }
-
   const reqHeaders: Record<string, string> = {
     Accept: 'application/json',
     'Content-Type': 'application/json',
@@ -25,7 +21,7 @@ export async function fetchJiraTickets(
     reqHeaders['Authorization'] = `Basic ${btoa(`${modeEmail}:${modeToken}`)}`;
   }
 
-  let cleanUrl = modeUrl.trim();
+  let cleanUrl = (modeUrl || '').trim();
   try {
     if (cleanUrl.toLowerCase().startsWith('http')) {
       const urlObj = new URL(cleanUrl);
@@ -42,7 +38,8 @@ export async function fetchJiraTickets(
   let nextPageToken: string | null = null;
 
   while (pageCount < maxPages) {
-    let targetUrl = `${cleanUrl.replace(/\/$/, '')}/rest/api/3/search/jql?jql=${encodeURIComponent(jql)}&fields=key,summary,status,assignee,updated,created,parent,duedate&maxResults=${limit}`;
+    const basePath = cleanUrl ? `${cleanUrl.replace(/\/$/, '')}/rest/api/3/search/jql` : '/rest/api/3/search/jql';
+    let targetUrl = `${basePath}?jql=${encodeURIComponent(jql)}&fields=key,summary,status,assignee,updated,created,parent,duedate&maxResults=${limit}`;
     if (nextPageToken) {
       targetUrl += `&nextPageToken=${encodeURIComponent(nextPageToken)}`;
     }

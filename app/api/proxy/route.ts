@@ -14,6 +14,15 @@ function resolveAuthHeader(request: NextRequest): string | undefined {
   return undefined;
 }
 
+function resolveTargetUrl(targetUrl: string): string {
+  if (targetUrl.toLowerCase().startsWith('http://') || targetUrl.toLowerCase().startsWith('https://')) {
+    return targetUrl;
+  }
+  const jiraBaseUrl = process.env.JIRA_URL?.trim().replace(/\/$/, '') || '';
+  const cleanPath = targetUrl.startsWith('/') ? targetUrl : `/${targetUrl}`;
+  return `${jiraBaseUrl}${cleanPath}`;
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const targetUrl = searchParams.get('url');
@@ -22,6 +31,7 @@ export async function GET(request: NextRequest) {
     return new NextResponse('Missing "url" query parameter', { status: 400 });
   }
 
+  const finalUrl = resolveTargetUrl(targetUrl);
   const authHeader = resolveAuthHeader(request);
   
   const headers: Record<string, string> = {
@@ -34,8 +44,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    console.log(`[Next.js Proxy API] GET Forwarding to: ${targetUrl}`);
-    const response = await fetch(targetUrl, {
+    console.log(`[Next.js Proxy API] GET Forwarding to: ${finalUrl}`);
+    const response = await fetch(finalUrl, {
       method: 'GET',
       headers: headers,
       cache: 'no-store' // 캐싱 방지
@@ -65,6 +75,7 @@ export async function POST(request: NextRequest) {
     return new NextResponse('Missing "url" query parameter', { status: 400 });
   }
 
+  const finalUrl = resolveTargetUrl(targetUrl);
   const authHeader = resolveAuthHeader(request);
   const bodyText = await request.text();
   
@@ -78,8 +89,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    console.log(`[Next.js Proxy API] POST Forwarding to: ${targetUrl}`);
-    const response = await fetch(targetUrl, {
+    console.log(`[Next.js Proxy API] POST Forwarding to: ${finalUrl}`);
+    const response = await fetch(finalUrl, {
       method: 'POST',
       headers: headers,
       body: bodyText,
