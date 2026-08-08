@@ -522,7 +522,7 @@ export class WeeklyReportStrategy extends ReportStrategy {
       weeklyMd += `\n`;
     }
 
-    weeklyMd += `## 🚀 4. 다음 주 주요 계획 및 이슈 사항\n\n`;
+    weeklyMd += `## 🚀 4. 다음 주 할 일 목록 (주요 계획 및 이슈)\n\n`;
     if (nextList.length === 0) {
       weeklyMd += `* **마일스톤 점검**: 다음 주 예정된 지라 티켓이 등록되어 있지 않거나 계획을 불러올 수 없습니다.\n`;
       weeklyMd += `* **장애 요인**: 예정된 주요 마일스톤에 지연 요소가 없는지 리스크 사전 점검.\n`;
@@ -685,7 +685,6 @@ export function processEpicSearchGroup(sectionText: string, searchKeyword: strin
 
   const remainingBlocks = epicBlocks.filter((_, idx) => !consumedEpicIndices.has(idx));
   if (remainingBlocks.length > 0) {
-    rebuilt += `### 📁 기타 에픽 목록\n\n`;
     remainingBlocks.forEach(b => {
       const cleanContent = b.content.join('\n').trim();
       rebuilt += `${b.rawHeader}\n${cleanContent}\n\n`;
@@ -1207,6 +1206,60 @@ export function sortWeeklyReportEpics(
   return result;
 }
 
+export function filterEpicSummaryTable(
+  weeklyMd: string,
+  searchKeyword: string
+): string {
+  if (!weeklyMd || !searchKeyword || !searchKeyword.trim()) return weeklyMd;
+
+  const keywords = searchKeyword
+    .split(',')
+    .map((k) => k.trim().toLowerCase())
+    .filter((k) => k.length > 0);
+
+  if (keywords.length === 0) return weeklyMd;
+
+  const summaryTableRegex = /(### 📊 에픽별 진행 현황\s*\n\n\|[^\n]+\|\n\|[^\n]+\|\n)([\s\S]*?)(\n\n|$)/;
+  const match = weeklyMd.match(summaryTableRegex);
+
+  if (!match) return weeklyMd;
+
+  const tableHeader = match[1];
+  const tableRowsText = match[2].trim();
+  const ending = match[3];
+
+  const rows = tableRowsText.split('\n').filter((r) => r.trim().startsWith('|'));
+
+  const parsedRows = rows.map((row) => {
+    const cols = row.split('|').map((c) => c.trim()).filter(Boolean);
+    const epicTitle = (cols[0] || '').replace(/\*\*/g, '').trim();
+    return { row, epicTitle };
+  });
+
+  const matchedRows: string[] = [];
+  const addedRowSet = new Set<string>();
+
+  keywords.forEach((kw) => {
+    parsedRows.forEach(({ row, epicTitle }) => {
+      if (addedRowSet.has(row)) return;
+      if (epicTitle.toLowerCase().includes(kw)) {
+        matchedRows.push(row);
+        addedRowSet.add(row);
+      }
+    });
+  });
+
+  if (matchedRows.length === 0) {
+    return weeklyMd.replace(
+      summaryTableRegex,
+      `${tableHeader}| *검색된 에픽 없음* | - | - | - | - | **-** |\n${ending}`
+    );
+  }
+
+  const sortedRowsText = matchedRows.join('\n');
+  return weeklyMd.replace(summaryTableRegex, `${tableHeader}${sortedRowsText}${ending}`);
+}
+
 export function applyWeeklyReportFilter(
   weeklyMd: string,
   searchKeyword: string,
@@ -1215,7 +1268,14 @@ export function applyWeeklyReportFilter(
 ): string {
   let result = weeklyMd;
 
+  result = result.replace(
+    /##\s*🚀\s*4\.\s*다음\s*주\s*주요\s*계획\s*및\s*이슈\s*사항/g,
+    '## 🚀 4. 다음 주 할 일 목록 (주요 계획 및 이슈)'
+  );
+
   if (searchKeyword && searchKeyword.trim()) {
+    result = filterEpicSummaryTable(result, searchKeyword);
+
     const sections = result.split(/(?=^## )/m);
     result = sections
       .map(section => {
@@ -1224,7 +1284,8 @@ export function applyWeeklyReportFilter(
         }
         return processEpicSearchGroup(section, searchKeyword);
       })
-      .join('');
+      .filter(Boolean)
+      .join('\n\n');
   }
 
   if (epicSortOrder && epicSortOrder !== 'latest') {
