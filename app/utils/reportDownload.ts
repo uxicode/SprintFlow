@@ -48,9 +48,9 @@ function renderEpicSection(
       if (includeStatus) {
         const cat = getStatusCategory(t.status);
         const statusLabel = cat === 'Done' ? '완료' : cat === 'In Progress' ? '진행 중' : '대기 중';
-        section += `* ${summary} (${statusLabel}- ${dateStr})\n`;
+        section += `    ${summary} (${statusLabel}- ${dateStr})\n`;
       } else {
-        section += `* ${summary} (${dateStr})\n`;
+        section += `    ${summary} (${dateStr})\n`;
       }
     });
     section += '\n';
@@ -136,16 +136,28 @@ export class MarkdownCleanerBuilder {
 // 단일 티켓 행 정제용 순수 변환 함수 (Zero-Allocation Pure Utilities)
 // ============================================================================
 
-function isTicketLine(line: string): boolean {
+function isEpicTitleLine(line: string): boolean {
   const trimmed = line.trim();
-  if (trimmed.startsWith('|')) {
-    return false;
-  }
-  return trimmed.startsWith('*') || trimmed.startsWith('-');
+  return trimmed.startsWith('- ');
 }
 
-function removeTicketStatusIcons(line: string): string {
-  return line.replace(/^(\s*[*|-]\s*)(?:✅|🔄|⏱️|⏱|🟢)\s*/, '$1');
+function isTicketLine(line: string): boolean {
+  const trimmed = line.trim();
+  if (trimmed.startsWith('|') || trimmed.startsWith('#')) {
+    return false;
+  }
+  if (isEpicTitleLine(line)) {
+    return false;
+  }
+  return trimmed.startsWith('*') || trimmed.startsWith('-') || /^\s*[*|-]\s*/.test(line);
+}
+
+function removeTicketStatusIconsAndBullet(line: string): string {
+  const cleaned = line
+    .replace(/^\s*[*|-]\s*/, '')
+    .replace(/^(?:✅|🔄|⏱️|⏱|🟢)\s*/, '')
+    .trim();
+  return `    ${cleaned}`;
 }
 
 function removeTicketLinksAndKeys(line: string): string {
@@ -204,7 +216,7 @@ function cleanSingleTicketLine(line: string): string {
     removeTicketEpicMeta(
       removeTicketPartTags(
         removeTicketLinksAndKeys(
-          removeTicketStatusIcons(line)
+          removeTicketStatusIconsAndBullet(line)
         )
       )
     )

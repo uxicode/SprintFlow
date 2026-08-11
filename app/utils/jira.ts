@@ -1279,7 +1279,7 @@ export function applyWeeklyReportFilter(
     const sections = result.split(/(?=^## )/m);
     result = sections
       .map(section => {
-        if (!section.startsWith('## 📋 3.') && !section.startsWith('## 🚀 4.')) {
+        if (!section.startsWith('## 📋 3.')) {
           return section;
         }
         return processEpicSearchGroup(section, searchKeyword);
