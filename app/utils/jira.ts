@@ -1031,21 +1031,49 @@ export function applyWeeklyReportTagFilters(
   weeklyMd: string,
   tagFilters?: WeeklyReportTagFilters
 ): string {
-  if (
-    !tagFilters ||
-    (!tagFilters.hideTicketNumber &&
-      !tagFilters.hidePosition &&
-      !tagFilters.hideDueDate &&
-      !tagFilters.hideAssignee &&
-      !tagFilters.hideIcon)
-  ) {
+  if (!tagFilters) {
     return weeklyMd;
   }
 
-  const { hideTicketNumber, hidePosition, hideDueDate, hideAssignee, hideIcon } = tagFilters;
-  const lines = weeklyMd.split('\n');
+  let processedMd = weeklyMd;
 
-  // 1. 라인 단위 텍스트 요법(티켓넘버, 포지션, 기한, 담당자, 아이콘) 숨김 처리 (단, 표 '|' 라인은 100% 유지)
+  // 1. 섹션 단위 숨김 처리 (1. 보고서 요약 개요, 2. 이번 주 진행 상태 메트릭스, 에픽별 진행 현황)
+  if (tagFilters.hideSummaryOverview) {
+    processedMd = processedMd.replace(
+      /##\s*🗓️?\s*1\.\s*보고서\s*요약\s*개요[\s\S]*?(?=(?:###?\s*(?:📈\s*)?2\.|###?\s*(?:📊\s*)?에픽별|##\s*📋\s*3\.|##\s*🚀\s*4\.))/g,
+      ''
+    );
+  }
+
+  if (tagFilters.hideMetricsTable) {
+    processedMd = processedMd.replace(
+      /###?\s*📈?\s*2\.\s*이번\s*주\s*진행\s*상태\s*메트릭스[\s\S]*?(?=(?:###?\s*(?:📊\s*)?에픽별|##\s*📋\s*3\.|##\s*🚀\s*4\.))/g,
+      ''
+    );
+  }
+
+  if (tagFilters.hideEpicSummaryTable) {
+    processedMd = processedMd.replace(
+      /###?\s*📊?\s*에픽별\s*진행\s*현황[\s\S]*?(?=(?:##\s*📋\s*3\.|##\s*🚀\s*4\.))/g,
+      ''
+    );
+  }
+
+  const { hideTicketNumber, hidePosition, hideDueDate, hideAssignee, hideIcon } = tagFilters;
+
+  if (
+    !hideTicketNumber &&
+    !hidePosition &&
+    !hideDueDate &&
+    !hideAssignee &&
+    !hideIcon
+  ) {
+    return processedMd.trim();
+  }
+
+  const lines = processedMd.split('\n');
+
+  // 2. 라인 단위 텍스트 요법(티켓넘버, 포지션, 기한, 담당자, 아이콘) 숨김 처리 (단, 표 '|' 라인은 100% 유지)
   const processedLines = lines.map((line) => {
     if (line.trim().startsWith('|')) {
       return line;

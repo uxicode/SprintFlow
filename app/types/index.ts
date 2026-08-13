@@ -591,6 +591,9 @@ export interface ReportStoreSlice {
 }
 
 export interface WeeklyReportTagFilters {
+  hideSummaryOverview?: boolean;
+  hideMetricsTable?: boolean;
+  hideEpicSummaryTable?: boolean;
   hideTicketNumber: boolean;
   hidePosition: boolean;
   hideDueDate: boolean;

@@ -35,6 +35,9 @@ export default function ReportSection() {
       }
     }
     return {
+      hideSummaryOverview: false,
+      hideMetricsTable: false,
+      hideEpicSummaryTable: false,
       hideTicketNumber: false,
       hidePosition: false,
       hideDueDate: false,
@@ -93,6 +96,9 @@ export default function ReportSection() {
   };
 
   const isAllTagFiltersSelected =
+    Boolean(tagFilters.hideSummaryOverview) &&
+    Boolean(tagFilters.hideMetricsTable) &&
+    Boolean(tagFilters.hideEpicSummaryTable) &&
     tagFilters.hideTicketNumber &&
     tagFilters.hidePosition &&
     tagFilters.hideDueDate &&
@@ -103,6 +109,9 @@ export default function ReportSection() {
     setTagFilters(() => {
       const nextValue = !isAllTagFiltersSelected;
       const next: WeeklyReportTagFilters = {
+        hideSummaryOverview: nextValue,
+        hideMetricsTable: nextValue,
+        hideEpicSummaryTable: nextValue,
         hideTicketNumber: nextValue,
         hidePosition: nextValue,
         hideDueDate: nextValue,
@@ -277,6 +286,39 @@ export default function ReportSection() {
                       <span className="chip-icon">✨</span>
                       <span>{isAllTagFiltersSelected ? '전체 해제' : '모두 선택'}</span>
                       {isAllTagFiltersSelected && <span className="chip-badge">전체</span>}
+                    </button>
+
+                    <button
+                      type="button"
+                      className={`tag-chip ${tagFilters.hideSummaryOverview ? 'active' : ''}`}
+                      onClick={() => handleToggleTagFilter('hideSummaryOverview')}
+                      title="활성화 시 '1. 보고서 요약 개요' 섹션을 주간 보고서에서 숨깁니다"
+                    >
+                      <span className="chip-icon">🗓️</span>
+                      <span>1. 요약 개요</span>
+                      {tagFilters.hideSummaryOverview && <span className="chip-badge">숨김</span>}
+                    </button>
+
+                    <button
+                      type="button"
+                      className={`tag-chip ${tagFilters.hideMetricsTable ? 'active' : ''}`}
+                      onClick={() => handleToggleTagFilter('hideMetricsTable')}
+                      title="활성화 시 '2. 이번 주 진행 상태 메트릭스' 섹션을 주간 보고서에서 숨깁니다"
+                    >
+                      <span className="chip-icon">📈</span>
+                      <span>2. 메트릭스</span>
+                      {tagFilters.hideMetricsTable && <span className="chip-badge">숨김</span>}
+                    </button>
+
+                    <button
+                      type="button"
+                      className={`tag-chip ${tagFilters.hideEpicSummaryTable ? 'active' : ''}`}
+                      onClick={() => handleToggleTagFilter('hideEpicSummaryTable')}
+                      title="활성화 시 '에픽별 진행 현황' 표 섹션을 주간 보고서에서 숨깁니다"
+                    >
+                      <span className="chip-icon">📊</span>
+                      <span>에픽별 현황</span>
+                      {tagFilters.hideEpicSummaryTable && <span className="chip-badge">숨김</span>}
                     </button>
 
                     <button

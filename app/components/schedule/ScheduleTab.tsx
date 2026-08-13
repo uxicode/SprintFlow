@@ -142,7 +142,7 @@ export default function ScheduleTab() {
         </div>
       ) : filteredGanttData.epics.length === 0 ? (
         <div className="empty-state empty-state--centered">
-          <p>입력하신 검색어 ('{searchKeyword}') 와 일치하는 에픽 일정이 없습니다.</p>
+          <p>입력하신 검색어 (&apos;{searchKeyword}&apos;) 와 일치하는 에픽 일정이 없습니다.</p>
         </div>
       ) : (
         <GanttChart ganttData={filteredGanttData} />
