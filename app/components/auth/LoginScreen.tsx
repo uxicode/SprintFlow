@@ -15,19 +15,16 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Particle reveal 5-click state
+  // Particle reveal 5-click & title 3-click state
   const [clickCount, setClickCount] = useState(0);
+  const [titleClickCount, setTitleClickCount] = useState(0);
   const [isFormRevealed, setIsFormRevealed] = useState(false);
   const [isPulsing, setIsPulsing] = useState(false);
-
-  // Title 3-click disassemble state
-  const [titleClickCount, setTitleClickCount] = useState(0);
   const [isTitlePulsing, setIsTitlePulsing] = useState(false);
 
   const handleLogoClick = () => {
     if (isFormRevealed) return;
 
-    // Trigger visual pulse animation
     setIsPulsing(true);
     setTimeout(() => setIsPulsing(false), 300);
 
@@ -43,7 +40,6 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
   const handleTitleClick = () => {
     if (!isFormRevealed) return;
 
-    // Trigger visual pulse animation for title
     setIsTitlePulsing(true);
     setTimeout(() => setIsTitlePulsing(false), 300);
 
@@ -51,7 +47,6 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
     setTitleClickCount(nextCount);
 
     if (nextCount >= 3) {
-      // Disassemble form back to particles
       setIsFormRevealed(false);
       setClickCount(0);
       setTitleClickCount(0);
@@ -97,7 +92,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
   return (
     <div className={`login-screen-container ${isFormRevealed ? 'form-revealed' : 'initial-particles-mode'}`}>
       {/* High-performance Three.js Particle Background */}
-      <ParticleBackground clickCount={clickCount} isFormRevealed={isFormRevealed} />
+      <ParticleBackground isFormRevealed={isFormRevealed} />
 
       <div className="login-glow-bg"></div>
 
@@ -141,7 +136,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
                 <div className="login-error-banner">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <circle cx="12" cy="12" r="10" />
-                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="8" x2="12" />
                     <line x1="12" y1="16" x2="12.01" y2="16" />
                   </svg>
                   <span>{errorMessage}</span>
@@ -166,7 +161,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
                     placeholder="관리자 아이디 입력"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    disabled={isSubmitting || !isFormRevealed}
+                    disabled={isSubmitting}
                     autoComplete="username"
                     autoFocus={isFormRevealed}
                   />
@@ -191,7 +186,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
                     placeholder="비밀번호 입력"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    disabled={isSubmitting || !isFormRevealed}
+                    disabled={isSubmitting}
                     autoComplete="current-password"
                   />
                   <button
@@ -215,7 +210,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
                 </div>
               </div>
 
-              <button type="submit" className="login-submit-button" disabled={isSubmitting || !isFormRevealed}>
+              <button type="submit" className="login-submit-button" disabled={isSubmitting}>
                 {isSubmitting ? (
                   <span className="login-loading-spinner"></span>
                 ) : (
