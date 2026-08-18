@@ -218,5 +218,16 @@
     "color": "#3b82f6",
     "notes": "",
     "location": ""
+  },
+  {
+    "id": "todo-1787032817091-4zzmc",
+    "title": "ai 결제사항 체크",
+    "date": "2026-08-18",
+    "startHour": 15,
+    "endHour": 15.5,
+    "category": "할 일",
+    "color": "#3b82f6",
+    "notes": "",
+    "location": ""
   }
 ]
