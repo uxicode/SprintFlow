@@ -240,5 +240,16 @@
     "color": "#3b82f6",
     "notes": "",
     "location": ""
+  },
+  {
+    "id": "todo-1787032887949-mp97e",
+    "title": "kmc 상용배포",
+    "date": "2026-08-18",
+    "startHour": 16,
+    "endHour": 17,
+    "category": "할 일",
+    "color": "#3b82f6",
+    "notes": "",
+    "location": ""
   }
 ]
