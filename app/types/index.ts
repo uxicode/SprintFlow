@@ -484,6 +484,7 @@ export interface TodoItem {
   category?: '할 일' | '일정';
   notes?: string;
   location?: string;
+  completed?: boolean;
 }
 
 export interface UiStoreSlice {

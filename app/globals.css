@@ -3400,6 +3400,100 @@ select.select-input:focus {
   pointer-events: auto;
 }
 
+/* ── 할일 완료 체크박스 ── */
+.todo-event-checkbox-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  margin-right: 0.3rem;
+}
+
+.todo-event-checkbox {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.todo-event-checkmark {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid rgba(255, 255, 255, 0.7);
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.todo-event-checkmark::after {
+  content: '';
+  position: absolute;
+  display: none;
+  left: 3.5px;
+  top: 0.5px;
+  width: 4px;
+  height: 8px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.todo-event-checkbox:checked + .todo-event-checkmark {
+  background: rgba(255, 255, 255, 0.35);
+  border-color: rgba(255, 255, 255, 0.95);
+}
+
+.todo-event-checkbox:checked + .todo-event-checkmark::after {
+  display: block;
+  animation: todoCheckPop 0.25s ease-out;
+}
+
+.todo-event-checkbox-wrapper:hover .todo-event-checkmark {
+  border-color: rgba(255, 255, 255, 1);
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+}
+
+@keyframes todoCheckPop {
+  0% {
+    opacity: 0;
+    transform: rotate(45deg) scale(0.5);
+  }
+  60% {
+    transform: rotate(45deg) scale(1.15);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(45deg) scale(1);
+  }
+}
+
+/* ── 완료 상태: 취소선 + 반투명 ── */
+.todo-event-block.is-completed {
+  opacity: 0.6;
+}
+
+.todo-event-block.is-completed .todo-event-title {
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+  text-decoration-color: rgba(255, 255, 255, 0.8);
+  opacity: 0.7;
+}
+
+.todo-event-block.is-completed .todo-event-time {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  text-decoration-color: rgba(255, 255, 255, 0.5);
+  opacity: 0.6;
+}
+
 .todo-event-header-row {
   display: flex;
   justify-content: space-between;

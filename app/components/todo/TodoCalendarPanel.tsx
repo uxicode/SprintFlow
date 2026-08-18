@@ -148,6 +148,15 @@ export default function TodoCalendarPanel() {
     setIsModalOpen(true);
   };
 
+  // 할일 완료 토글
+  const handleToggleCompleted = (itemId: string, e: React.MouseEvent | React.ChangeEvent) => {
+    e.stopPropagation();
+    const updatedItems = items.map((it) =>
+      it.id === itemId ? { ...it, completed: !it.completed } : it
+    );
+    saveItemsToStorage(updatedItems);
+  };
+
   // 일정 상세 보기 모달 열기 (순수 클릭 시에만 노출, 드래그 후 드롭 시엔 방지)
   const handleViewDetail = (item: TodoItem, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -412,7 +421,7 @@ export default function TodoCalendarPanel() {
               return (
                 <div
                   key={currentItem.id}
-                  className={`todo-event-block ${isDraggingThis ? 'is-dragging' : ''}`}
+                  className={`todo-event-block ${isDraggingThis ? 'is-dragging' : ''} ${currentItem.completed ? 'is-completed' : ''}`}
                   style={{
                     top: `${topPx}px`,
                     height: `${heightPx}px`,
@@ -431,6 +440,16 @@ export default function TodoCalendarPanel() {
 
                   <div className="todo-event-content">
                     <div className="todo-event-header-row">
+                      <label className="todo-event-checkbox-wrapper" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          className="todo-event-checkbox"
+                          checked={!!currentItem.completed}
+                          onChange={(e) => handleToggleCompleted(currentItem.id!, e)}
+                          title={currentItem.completed ? '완료됨 — 클릭하여 해제' : '미완료 — 클릭하여 완료 처리'}
+                        />
+                        <span className="todo-event-checkmark" />
+                      </label>
                       <div className="todo-event-title">{displayTitle}</div>
                       <div className="todo-event-actions">
                         <button
