@@ -278,5 +278,16 @@
     "notes": "",
     "location": "",
     "completed": true
+  },
+  {
+    "id": "todo-1787103325395-47a4a",
+    "title": "직무교육 신청서 기안",
+    "date": "2026-08-19",
+    "startHour": 10.5,
+    "endHour": 11,
+    "category": "할 일",
+    "color": "#3b82f6",
+    "notes": "",
+    "location": ""
   }
 ]
