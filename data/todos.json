@@ -300,5 +300,16 @@
     "color": "#3b82f6",
     "notes": "",
     "location": ""
+  },
+  {
+    "id": "todo-1787121309746-oh8z9",
+    "title": "비일만시 외부 로그인 계정 (비일만시 메뉴얼 추가)",
+    "date": "2026-08-19",
+    "startHour": 14,
+    "endHour": 15,
+    "category": "할 일",
+    "color": "#3b82f6",
+    "notes": "",
+    "location": ""
   }
 ]
