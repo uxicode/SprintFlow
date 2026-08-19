@@ -289,5 +289,16 @@
     "color": "#3b82f6",
     "notes": "",
     "location": ""
+  },
+  {
+    "id": "todo-1787121284914-j4bi5",
+    "title": "단위테스트 계획서",
+    "date": "2026-08-19",
+    "startHour": 15,
+    "endHour": 16,
+    "category": "할 일",
+    "color": "#3b82f6",
+    "notes": "",
+    "location": ""
   }
 ]
