@@ -5,8 +5,12 @@ import { createPortal } from 'react-dom';
 import dayjs from 'dayjs';
 import 'dayjs/locale/ko';
 import type { TodoItem } from '../../types';
+import MonthCalendarView from './MonthCalendarView';
+import WeeklySummaryView from './WeeklySummaryView';
 
 dayjs.locale('ko');
+
+type ViewMode = 'daily' | 'monthly' | 'weekly';
 
 const STORAGE_KEY = 'sprintflow_todo_events';
 const HOUR_HEIGHT = 52; // 1시간당 52px
@@ -50,6 +54,8 @@ function formatTimeRange(startHour: number, endHour: number): string {
 }
 
 export default function TodoCalendarPanel() {
+  const [viewMode, setViewMode] = useState<ViewMode>('daily');
+  const [currentMonth, setCurrentMonth] = useState(() => dayjs().startOf('month'));
   const [selectedDate, setSelectedDate] = useState(() => dayjs().format('YYYY-MM-DD'));
   const [items, setItems] = useState<TodoItem[]>(() => {
     if (typeof window !== 'undefined') {
@@ -127,6 +133,17 @@ export default function TodoCalendarPanel() {
   const handlePrevDay = () => setSelectedDate((prev) => dayjs(prev).subtract(1, 'day').format('YYYY-MM-DD'));
   const handleNextDay = () => setSelectedDate((prev) => dayjs(prev).add(1, 'day').format('YYYY-MM-DD'));
   const handleToday = () => setSelectedDate(dayjs().format('YYYY-MM-DD'));
+
+  // 월 캘린더 / 주간 뷰에서 날짜 선택 → 일간 뷰 전환
+  const handleCalendarDateSelect = useCallback((date: string) => {
+    setSelectedDate(date);
+    setViewMode('daily');
+  }, []);
+
+  // 월 이동 핸들러
+  const handlePrevMonth = useCallback(() => setCurrentMonth((prev) => prev.subtract(1, 'month')), []);
+  const handleNextMonth = useCallback(() => setCurrentMonth((prev) => prev.add(1, 'month')), []);
+  const handleMonthToday = useCallback(() => setCurrentMonth(dayjs().startOf('month')), []);
 
   // 필터링된 오늘 날짜의 일정들
   const dayItems = items.filter((item) => item.date === selectedDate);
@@ -338,162 +355,234 @@ export default function TodoCalendarPanel() {
         </button>
       </div>
 
-      {/* 날짜 컨트롤 바 */}
-      <div className="todo-date-nav">
-        <button type="button" className="btn btn-secondary btn-xs" onClick={handleToday}>
-          오늘
+      {/* 뷰 모드 전환 탭 */}
+      <div className="todo-view-tabs">
+        <button
+          type="button"
+          className={`todo-view-tab ${viewMode === 'daily' ? 'active' : ''}`}
+          onClick={() => setViewMode('daily')}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+            <line x1="16" y1="2" x2="16" y2="6" />
+            <line x1="8" y1="2" x2="8" y2="6" />
+            <line x1="3" y1="10" x2="21" y2="10" />
+          </svg>
+          일간
         </button>
-        <div className="todo-date-arrows">
-          <button type="button" className="btn btn-secondary btn-icon-xs" onClick={handlePrevDay}>
-            ‹
-          </button>
-          <button type="button" className="btn btn-secondary btn-icon-xs" onClick={handleNextDay}>
-            ›
-          </button>
-        </div>
-        <span className="todo-current-date-label">
-          {dayjs(selectedDate).format('YYYY년 M월 D일 (ddd)')}
-        </span>
+        <button
+          type="button"
+          className={`todo-view-tab ${viewMode === 'monthly' ? 'active' : ''}`}
+          onClick={() => setViewMode('monthly')}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+            <line x1="16" y1="2" x2="16" y2="6" />
+            <line x1="8" y1="2" x2="8" y2="6" />
+            <line x1="3" y1="10" x2="21" y2="10" />
+            <rect x="7" y="13" width="3" height="3" rx="0.5" />
+            <rect x="14" y="13" width="3" height="3" rx="0.5" />
+            <rect x="7" y="17" width="3" height="3" rx="0.5" />
+          </svg>
+          월간
+        </button>
+        <button
+          type="button"
+          className={`todo-view-tab ${viewMode === 'weekly' ? 'active' : ''}`}
+          onClick={() => setViewMode('weekly')}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="8" y1="6" x2="21" y2="6" />
+            <line x1="8" y1="12" x2="21" y2="12" />
+            <line x1="8" y1="18" x2="21" y2="18" />
+            <line x1="3" y1="6" x2="3.01" y2="6" />
+            <line x1="3" y1="12" x2="3.01" y2="12" />
+            <line x1="3" y1="18" x2="3.01" y2="18" />
+          </svg>
+          주간 요약
+        </button>
       </div>
 
-      {/* 24시간 타임라인 그리드 영역 */}
-      <div className="todo-timeline-container" ref={gridBodyRef}>
-        <div className="todo-timeline-scroll">
-          {/* 타임라인 레이어 (그리드 배경 및 시간 눈금) */}
-          <div className="todo-time-slots">
-            {HOURS.map((h) => (
-              <div
-                key={h}
-                className="todo-hour-slot"
-                onClick={() => handleGridSlotClick(h)}
-                title={`${formatHourLabel(h)} 일정 추가`}
-              >
-                <div className="todo-hour-label">{formatHourLabel(h)}</div>
-                <div className="todo-hour-line" />
-              </div>
-            ))}
+      {/* 일간 뷰: 날짜 컨트롤 바 */}
+      {viewMode === 'daily' && (
+        <div className="todo-date-nav">
+          <button type="button" className="btn btn-secondary btn-xs" onClick={handleToday}>
+            오늘
+          </button>
+          <div className="todo-date-arrows">
+            <button type="button" className="btn btn-secondary btn-icon-xs" onClick={handlePrevDay}>
+              ‹
+            </button>
+            <button type="button" className="btn btn-secondary btn-icon-xs" onClick={handleNextDay}>
+              ›
+            </button>
           </div>
+          <span className="todo-current-date-label">
+            {dayjs(selectedDate).format('YYYY년 M월 D일 (ddd)')}
+          </span>
+        </div>
+      )}
 
-          {/* 일정 사각 박스 오버레이 레이어 */}
-          <div className="todo-events-overlay">
-            {/* 작성 중인 신규 일정 실시간 프리뷰 블록 (구글 캘린더 동일 UX) */}
-            {isModalOpen && editingItem && !editingItem.id && (
-              (() => {
-                const previewStart = editingItem.startHour ?? 9;
-                const previewEnd = editingItem.endHour ?? 10;
-                const previewTop = previewStart * HOUR_HEIGHT;
-                const previewHeight = Math.max(0.25, previewEnd - previewStart) * HOUR_HEIGHT;
-                const previewTitle = editingItem.title?.trim() || '(제목 없음)';
-                const previewBg = editingItem.color || CATEGORY_COLORS[editingItem.category || '일정'] || DEFAULT_COLOR;
+      {/* 일간 뷰: 24시간 타임라인 그리드 영역 */}
+      {viewMode === 'daily' && (
+        <div className="todo-timeline-container" ref={gridBodyRef}>
+          <div className="todo-timeline-scroll">
+            {/* 타임라인 레이어 (그리드 배경 및 시간 눈금) */}
+            <div className="todo-time-slots">
+              {HOURS.map((h) => (
+                <div
+                  key={h}
+                  className="todo-hour-slot"
+                  onClick={() => handleGridSlotClick(h)}
+                  title={`${formatHourLabel(h)} 일정 추가`}
+                >
+                  <div className="todo-hour-label">{formatHourLabel(h)}</div>
+                  <div className="todo-hour-line" />
+                </div>
+              ))}
+            </div>
+
+            {/* 일정 사각 박스 오버레이 레이어 */}
+            <div className="todo-events-overlay">
+              {/* 작성 중인 신규 일정 실시간 프리뷰 블록 (구글 캘린더 동일 UX) */}
+              {isModalOpen && editingItem && !editingItem.id && (
+                (() => {
+                  const previewStart = editingItem.startHour ?? 9;
+                  const previewEnd = editingItem.endHour ?? 10;
+                  const previewTop = previewStart * HOUR_HEIGHT;
+                  const previewHeight = Math.max(0.25, previewEnd - previewStart) * HOUR_HEIGHT;
+                  const previewTitle = editingItem.title?.trim() || '(제목 없음)';
+                  const previewBg = editingItem.color || CATEGORY_COLORS[editingItem.category || '일정'] || DEFAULT_COLOR;
+
+                  return (
+                    <div
+                      key="draft-preview-block"
+                      className="todo-event-block todo-event-block--preview"
+                      style={{
+                        top: `${previewTop}px`,
+                        height: `${previewHeight}px`,
+                        backgroundColor: previewBg,
+                      }}
+                    >
+                      <div className="todo-event-content">
+                        <div className="todo-event-title">{previewTitle}</div>
+                        <div className="todo-event-time">
+                          {formatTimeRange(previewStart, previewEnd)}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()
+              )}
+
+              {/* 기존 일정 블록 목록 (수정 중일 경우 실시간 변경사항 동기화) */}
+              {dayItems.map((item) => {
+                const currentItem = editingItem && editingItem.id === item.id ? { ...item, ...editingItem } : item;
+                const startH = currentItem.startHour ?? 0;
+                const endH = currentItem.endHour ?? 1;
+                const topPx = startH * HOUR_HEIGHT;
+                const heightPx = Math.max(0.25, endH - startH) * HOUR_HEIGHT;
+                const isDraggingThis = activeDragId === currentItem.id;
+                const bgColor = currentItem.color || CATEGORY_COLORS[currentItem.category || '일정'] || DEFAULT_COLOR;
+                const displayTitle = currentItem.title?.trim() || '(제목 없음)';
 
                 return (
                   <div
-                    key="draft-preview-block"
-                    className="todo-event-block todo-event-block--preview"
+                    key={currentItem.id}
+                    className={`todo-event-block ${isDraggingThis ? 'is-dragging' : ''} ${currentItem.completed ? 'is-completed' : ''}`}
                     style={{
-                      top: `${previewTop}px`,
-                      height: `${previewHeight}px`,
-                      backgroundColor: previewBg,
+                      top: `${topPx}px`,
+                      height: `${heightPx}px`,
+                      backgroundColor: bgColor,
                     }}
+                    onPointerDown={(e) => handlePointerDown(e, currentItem, 'move')}
+                    onClick={(e) => handleViewDetail(currentItem as TodoItem, e)}
+                    title={`${displayTitle} (${formatTimeRange(startH, endH)})\n클릭 시 일정 상세 정보 보기, 드래그 시 시간대 이동`}
                   >
+                    {/* 상단 리사이즈 핸들 */}
+                    <div
+                      className="todo-resize-handle todo-resize-handle--top"
+                      onPointerDown={(e) => handlePointerDown(e, currentItem, 'resize-top')}
+                      title="상단 핸들: 시작 시간 변경"
+                    />
+
                     <div className="todo-event-content">
-                      <div className="todo-event-title">{previewTitle}</div>
+                      <div className="todo-event-header-row">
+                        <label className="todo-event-checkbox-wrapper" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            className="todo-event-checkbox"
+                            checked={!!currentItem.completed}
+                            onChange={(e) => handleToggleCompleted(currentItem.id!, e)}
+                            title={currentItem.completed ? '완료됨 — 클릭하여 해제' : '미완료 — 클릭하여 완료 처리'}
+                          />
+                          <span className="todo-event-checkmark" />
+                        </label>
+                        <div className="todo-event-title">{displayTitle}</div>
+                        <div className="todo-event-actions">
+                          <button
+                            type="button"
+                            className="todo-action-btn edit-btn"
+                            onClick={(e) => handleEditItem(currentItem as TodoItem, e)}
+                            title="일정 수정"
+                            aria-label="일정 수정"
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            className="todo-action-btn delete-btn"
+                            onClick={(e) => handleDeleteItem(currentItem.id, e)}
+                            title="일정 삭제"
+                            aria-label="일정 삭제"
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="3 6 5 6 21 6" />
+                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
                       <div className="todo-event-time">
-                        {formatTimeRange(previewStart, previewEnd)}
+                        {formatTimeRange(startH, endH)}
                       </div>
                     </div>
+
+                    {/* 하단 리사이즈 핸들 */}
+                    <div
+                      className="todo-resize-handle todo-resize-handle--bottom"
+                      onPointerDown={(e) => handlePointerDown(e, currentItem, 'resize-bottom')}
+                      title="하단 핸들: 종료 시간 변경"
+                    />
                   </div>
                 );
-              })()
-            )}
-
-            {/* 기존 일정 블록 목록 (수정 중일 경우 실시간 변경사항 동기화) */}
-            {dayItems.map((item) => {
-              const currentItem = editingItem && editingItem.id === item.id ? { ...item, ...editingItem } : item;
-              const startH = currentItem.startHour ?? 0;
-              const endH = currentItem.endHour ?? 1;
-              const topPx = startH * HOUR_HEIGHT;
-              const heightPx = Math.max(0.25, endH - startH) * HOUR_HEIGHT;
-              const isDraggingThis = activeDragId === currentItem.id;
-              const bgColor = currentItem.color || CATEGORY_COLORS[currentItem.category || '일정'] || DEFAULT_COLOR;
-              const displayTitle = currentItem.title?.trim() || '(제목 없음)';
-
-              return (
-                <div
-                  key={currentItem.id}
-                  className={`todo-event-block ${isDraggingThis ? 'is-dragging' : ''} ${currentItem.completed ? 'is-completed' : ''}`}
-                  style={{
-                    top: `${topPx}px`,
-                    height: `${heightPx}px`,
-                    backgroundColor: bgColor,
-                  }}
-                  onPointerDown={(e) => handlePointerDown(e, currentItem, 'move')}
-                  onClick={(e) => handleViewDetail(currentItem as TodoItem, e)}
-                  title={`${displayTitle} (${formatTimeRange(startH, endH)})\n클릭 시 일정 상세 정보 보기, 드래그 시 시간대 이동`}
-                >
-                  {/* 상단 리사이즈 핸들 */}
-                  <div
-                    className="todo-resize-handle todo-resize-handle--top"
-                    onPointerDown={(e) => handlePointerDown(e, currentItem, 'resize-top')}
-                    title="상단 핸들: 시작 시간 변경"
-                  />
-
-                  <div className="todo-event-content">
-                    <div className="todo-event-header-row">
-                      <label className="todo-event-checkbox-wrapper" onClick={(e) => e.stopPropagation()}>
-                        <input
-                          type="checkbox"
-                          className="todo-event-checkbox"
-                          checked={!!currentItem.completed}
-                          onChange={(e) => handleToggleCompleted(currentItem.id!, e)}
-                          title={currentItem.completed ? '완료됨 — 클릭하여 해제' : '미완료 — 클릭하여 완료 처리'}
-                        />
-                        <span className="todo-event-checkmark" />
-                      </label>
-                      <div className="todo-event-title">{displayTitle}</div>
-                      <div className="todo-event-actions">
-                        <button
-                          type="button"
-                          className="todo-action-btn edit-btn"
-                          onClick={(e) => handleEditItem(currentItem as TodoItem, e)}
-                          title="일정 수정"
-                          aria-label="일정 수정"
-                        >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
-                          </svg>
-                        </button>
-                        <button
-                          type="button"
-                          className="todo-action-btn delete-btn"
-                          onClick={(e) => handleDeleteItem(currentItem.id, e)}
-                          title="일정 삭제"
-                          aria-label="일정 삭제"
-                        >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="3 6 5 6 21 6" />
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                    <div className="todo-event-time">
-                      {formatTimeRange(startH, endH)}
-                    </div>
-                  </div>
-
-                  {/* 하단 리사이즈 핸들 */}
-                  <div
-                    className="todo-resize-handle todo-resize-handle--bottom"
-                    onPointerDown={(e) => handlePointerDown(e, currentItem, 'resize-bottom')}
-                    title="하단 핸들: 종료 시간 변경"
-                  />
-                </div>
-              );
-            })}
+              })}
+            </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* 월간 캘린더 뷰 */}
+      {viewMode === 'monthly' && (
+        <MonthCalendarView
+          currentMonth={currentMonth}
+          items={items}
+          onSelectDate={handleCalendarDateSelect}
+          onPrevMonth={handlePrevMonth}
+          onNextMonth={handleNextMonth}
+          onToday={handleMonthToday}
+        />
+      )}
+
+      {/* 주간 요약 뷰 */}
+      {viewMode === 'weekly' && (
+        <WeeklySummaryView
+          items={items}
+          onSelectDate={handleCalendarDateSelect}
+        />
+      )}
 
       {/* 구글 캘린더 스타일 일정 생성/수정/상세보기 모달 */}
       {isModalOpen && editingItem && !activeDragId && typeof window !== 'undefined' && createPortal(

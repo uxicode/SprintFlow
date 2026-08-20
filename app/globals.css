@@ -3829,3 +3829,497 @@ select.select-input:focus {
   color: #ff4d4f;
   border-color: rgba(255, 77, 79, 0.3);
 }
+
+/* ════════════════════════════════════════════════════
+   뷰 전환 탭 (일간 / 월간 / 주간 요약)
+   ════════════════════════════════════════════════════ */
+
+.todo-view-tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+  padding: 0.25rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+}
+
+.todo-view-tab {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.55);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.todo-view-tab:hover {
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.todo-view-tab.active {
+  color: #00f2fe;
+  background: rgba(0, 242, 254, 0.1);
+  border-color: rgba(0, 242, 254, 0.25);
+  box-shadow: 0 2px 8px rgba(0, 242, 254, 0.12);
+}
+
+.todo-view-tab svg {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.todo-view-tab.active svg {
+  opacity: 1;
+  stroke: #00f2fe;
+}
+
+/* ════════════════════════════════════════════════════
+   월 캘린더 뷰 (MonthCalendarView)
+   ════════════════════════════════════════════════════ */
+
+.month-calendar-view {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.month-calendar-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-bottom: 0.5rem;
+}
+
+.month-calendar-arrows {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.month-calendar-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-accent, #00f2fe);
+}
+
+.month-calendar-grid {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(15, 15, 26, 0.45);
+}
+
+.month-calendar-weekday-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  background: rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.month-calendar-weekday-cell {
+  text-align: center;
+  padding: 0.55rem 0;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.month-calendar-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.month-calendar-row:last-child {
+  border-bottom: none;
+}
+
+.month-calendar-day-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.25rem;
+  min-height: 58px;
+  background: transparent;
+  border: none;
+  border-right: 1px solid rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  transition: background 0.15s ease;
+  color: inherit;
+  font-family: inherit;
+}
+
+.month-calendar-day-cell:last-child {
+  border-right: none;
+}
+
+.month-calendar-day-cell:hover {
+  background: rgba(0, 242, 254, 0.06);
+}
+
+.month-calendar-day-cell.is-outside {
+  opacity: 0.3;
+}
+
+.month-calendar-day-cell.is-outside:hover {
+  opacity: 0.5;
+}
+
+.month-calendar-day-number {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.month-calendar-day-cell.is-today .month-calendar-day-number {
+  background: var(--color-accent, #00f2fe);
+  color: #000;
+  font-weight: 800;
+  box-shadow: 0 2px 8px rgba(0, 242, 254, 0.4);
+}
+
+.month-calendar-dots {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.month-calendar-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.month-calendar-count {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1;
+}
+
+.month-calendar-legend {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  padding: 0.5rem 0;
+}
+
+.month-calendar-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.month-calendar-legend-item .month-calendar-dot {
+  width: 8px;
+  height: 8px;
+}
+
+/* ════════════════════════════════════════════════════
+   주간 요약 뷰 (WeeklySummaryView)
+   ════════════════════════════════════════════════════ */
+
+.weekly-summary-view {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* 기간 필터 */
+.weekly-summary-filter {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+}
+
+.weekly-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.weekly-filter-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.7);
+  white-space: nowrap;
+}
+
+.weekly-filter-selects {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.weekly-filter-select {
+  background: rgba(26, 26, 42, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+  color: #ffffff;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.82rem;
+  font-family: inherit;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.weekly-filter-select:focus {
+  border-color: rgba(0, 242, 254, 0.5);
+}
+
+.weekly-filter-select option {
+  background-color: #1e1e2e;
+  color: #ffffff;
+}
+
+.weekly-filter-separator {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
+}
+
+/* 주 네비게이션 */
+.weekly-summary-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.weekly-summary-arrows {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.weekly-summary-range-label {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--color-accent, #00f2fe);
+}
+
+/* 주간 통계 */
+.weekly-summary-stats {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.weekly-stat-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.65rem 0.5rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  transition: border-color 0.2s ease;
+}
+
+.weekly-stat-item:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.weekly-stat-value {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+}
+
+.weekly-stat-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.weekly-stat-completed .weekly-stat-value {
+  color: #34d399;
+}
+
+.weekly-stat-incomplete .weekly-stat-value {
+  color: #fbbf24;
+}
+
+/* 요일별 컬럼 그리드 */
+.weekly-summary-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.5rem;
+  flex: 1;
+  min-height: 200px;
+}
+
+.weekly-column {
+  display: flex;
+  flex-direction: column;
+  background: rgba(15, 15, 26, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: border-color 0.2s ease;
+}
+
+.weekly-column:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.weekly-column.is-today {
+  border-color: rgba(0, 242, 254, 0.3);
+  box-shadow: 0 0 12px rgba(0, 242, 254, 0.08);
+}
+
+.weekly-column-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.65rem 0.5rem;
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  border: none;
+  color: inherit;
+  font-family: inherit;
+  width: 100%;
+  transition: background 0.15s ease;
+}
+
+.weekly-column-header:hover {
+  background: rgba(0, 242, 254, 0.06);
+}
+
+.weekly-column-weekday {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.weekly-column-date {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.weekly-column-date.is-today-badge {
+  background: var(--color-accent, #00f2fe);
+  color: #000;
+  font-weight: 800;
+  box-shadow: 0 2px 8px rgba(0, 242, 254, 0.4);
+}
+
+.weekly-column-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.5rem;
+  flex: 1;
+  overflow-y: auto;
+  max-height: 320px;
+}
+
+.weekly-empty-slot {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.25);
+  text-align: center;
+  padding: 1rem 0.5rem;
+  font-style: italic;
+}
+
+.weekly-event-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.5rem 0.6rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: none;
+  border-left: 3px solid #3b82f6;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+  text-align: left;
+  width: 100%;
+  color: inherit;
+  font-family: inherit;
+  position: relative;
+}
+
+.weekly-event-card:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+.weekly-event-card.is-completed {
+  opacity: 0.5;
+}
+
+.weekly-event-card.is-completed .weekly-event-title {
+  text-decoration: line-through;
+  text-decoration-color: rgba(255, 255, 255, 0.6);
+}
+
+.weekly-event-time {
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
+}
+
+.weekly-event-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.weekly-event-done-badge {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.35rem;
+  font-size: 0.65rem;
+  color: #34d399;
+  font-weight: 800;
+}
