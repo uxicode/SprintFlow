@@ -3366,6 +3366,8 @@ select.select-input:focus {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  container-type: size;
+  container-name: todo-event;
 }
 
 .todo-event-block.is-dragging {
@@ -3398,6 +3400,16 @@ select.select-input:focus {
 
 .todo-event-content {
   pointer-events: auto;
+  display: flex;
+  /* flex-direction: column; */
+  gap: 0.1rem;
+  min-width: 0;
+  justify-content: space-between;
+}
+
+.todo-event-title-row {
+  display: flex;
+  align-items: center;
 }
 
 /* ── 할일 완료 체크박스 ── */
@@ -3499,6 +3511,7 @@ select.select-input:focus {
   justify-content: space-between;
   align-items: center;
   gap: 0.25rem;
+  flex-direction: column;
 }
 
 .todo-event-actions {
@@ -3621,6 +3634,32 @@ select.select-input:focus {
   font-size: 0.72rem;
   opacity: 0.9;
   margin-top: 0.15rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: 1rem;
+}
+
+/* 블록 높이가 작을 때 (30분 이하) title과 time을 가로 배치 */
+@container todo-event (max-height: 40px) {
+  .todo-event-content {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .todo-event-header-row {
+    min-width: 0;
+    flex: 1;
+    flex-direction: row;
+    justify-content: left;
+    align-items: center;
+  }
+
+  .todo-event-time {
+    margin-top: 0;
+    font-size: 0.68rem;
+    opacity: 0.85;
+  }
 }
 
 /* Resize Handles */
@@ -4107,6 +4146,78 @@ select.select-input:focus {
   font-size: 0.9rem;
   color: rgba(255, 255, 255, 0.5);
   font-weight: 500;
+}
+
+/* 설정 저장 체크박스 */
+.weekly-persist-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  margin-left: auto;
+  user-select: none;
+}
+
+.weekly-persist-checkbox input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.weekly-persist-checkmark {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.weekly-persist-checkmark::after {
+  content: '';
+  position: absolute;
+  display: none;
+  left: 3px;
+  top: 0px;
+  width: 5px;
+  height: 9px;
+  border: solid var(--color-accent, #00f2fe);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.weekly-persist-checkbox input[type="checkbox"]:checked + .weekly-persist-checkmark {
+  border-color: var(--color-accent, #00f2fe);
+  background: rgba(0, 242, 254, 0.12);
+}
+
+.weekly-persist-checkbox input[type="checkbox"]:checked + .weekly-persist-checkmark::after {
+  display: block;
+}
+
+.weekly-persist-checkbox:hover .weekly-persist-checkmark {
+  border-color: rgba(255, 255, 255, 0.7);
+}
+
+.weekly-persist-label {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.55);
+  font-weight: 500;
+  white-space: nowrap;
+  transition: color 0.2s ease;
+}
+
+.weekly-persist-checkbox:hover .weekly-persist-label {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.weekly-persist-checkbox input[type="checkbox"]:checked ~ .weekly-persist-label {
+  color: var(--color-accent, #00f2fe);
 }
 
 /* 주 네비게이션 */

@@ -508,7 +508,8 @@ export default function TodoCalendarPanel() {
 
                     <div className="todo-event-content">
                       <div className="todo-event-header-row">
-                        <label className="todo-event-checkbox-wrapper" onClick={(e) => e.stopPropagation()}>
+                        <div className="todo-event-title-row">
+                          <label className="todo-event-checkbox-wrapper" onClick={(e) => e.stopPropagation()}>
                           <input
                             type="checkbox"
                             className="todo-event-checkbox"
@@ -517,9 +518,16 @@ export default function TodoCalendarPanel() {
                             title={currentItem.completed ? '완료됨 — 클릭하여 해제' : '미완료 — 클릭하여 완료 처리'}
                           />
                           <span className="todo-event-checkmark" />
-                        </label>
-                        <div className="todo-event-title">{displayTitle}</div>
-                        <div className="todo-event-actions">
+                          </label>
+                          <div className="todo-event-title">{displayTitle}</div>
+                        </div>
+                    
+                        <div className="todo-event-time">
+                          {formatTimeRange(startH, endH)}
+                        </div>
+                      </div>
+
+                      <div className="todo-event-actions">
                           <button
                             type="button"
                             className="todo-action-btn edit-btn"
@@ -544,10 +552,7 @@ export default function TodoCalendarPanel() {
                             </svg>
                           </button>
                         </div>
-                      </div>
-                      <div className="todo-event-time">
-                        {formatTimeRange(startH, endH)}
-                      </div>
+
                     </div>
 
                     {/* 하단 리사이즈 핸들 */}

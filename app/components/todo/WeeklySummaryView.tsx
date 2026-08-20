@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import dayjs from 'dayjs';
 import 'dayjs/locale/ko';
 import type { TodoItem } from '../../types';
@@ -10,6 +10,8 @@ dayjs.locale('ko');
 type Weekday = '월' | '화' | '수' | '목' | '금';
 
 const WEEKDAY_OPTIONS: Weekday[] = ['월', '화', '수', '목', '금'];
+
+const LS_KEY_WEEKLY_RANGE = 'sprint-flow-weekly-range';
 
 const WEEKDAY_TO_DAY_OFFSET: Record<Weekday, number> = {
   '월': 0,
@@ -97,8 +99,36 @@ const WEEKDAY_LABELS_MAP: Record<number, string> = {
 };
 
 export default function WeeklySummaryView({ items, onSelectDate }: WeeklySummaryViewProps) {
-  const [startDay, setStartDay] = useState<Weekday>('월');
-  const [endDay, setEndDay] = useState<Weekday>('금');
+  const [startDay, setStartDay] = useState<Weekday>(() => {
+    if (typeof window === 'undefined') return '월';
+    try {
+      const saved = localStorage.getItem(LS_KEY_WEEKLY_RANGE);
+      if (saved) {
+        const parsed = JSON.parse(saved) as { startDay?: string; endDay?: string };
+        if (parsed.startDay && WEEKDAY_OPTIONS.includes(parsed.startDay as Weekday)) {
+          return parsed.startDay as Weekday;
+        }
+      }
+    } catch { /* ignore */ }
+    return '월';
+  });
+  const [endDay, setEndDay] = useState<Weekday>(() => {
+    if (typeof window === 'undefined') return '금';
+    try {
+      const saved = localStorage.getItem(LS_KEY_WEEKLY_RANGE);
+      if (saved) {
+        const parsed = JSON.parse(saved) as { startDay?: string; endDay?: string };
+        if (parsed.endDay && WEEKDAY_OPTIONS.includes(parsed.endDay as Weekday)) {
+          return parsed.endDay as Weekday;
+        }
+      }
+    } catch { /* ignore */ }
+    return '금';
+  });
+  const [persistRange, setPersistRange] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem(LS_KEY_WEEKLY_RANGE) !== null;
+  });
   const [weekOffset, setWeekOffset] = useState(0); // 0 = 이번 주
 
   const referenceDate = useMemo(() => dayjs().add(weekOffset * 7, 'day'), [weekOffset]);
@@ -142,6 +172,22 @@ export default function WeeklySummaryView({ items, onSelectDate }: WeeklySummary
   const handleNextWeek = useCallback(() => setWeekOffset((prev) => prev + 1), []);
   const handleThisWeek = useCallback(() => setWeekOffset(0), []);
 
+  // localStorage 동기화
+  useEffect(() => {
+    if (persistRange) {
+      localStorage.setItem(LS_KEY_WEEKLY_RANGE, JSON.stringify({ startDay, endDay }));
+    }
+  }, [persistRange, startDay, endDay]);
+
+  const handleTogglePersist = useCallback((checked: boolean) => {
+    setPersistRange(checked);
+    if (checked) {
+      localStorage.setItem(LS_KEY_WEEKLY_RANGE, JSON.stringify({ startDay, endDay }));
+    } else {
+      localStorage.removeItem(LS_KEY_WEEKLY_RANGE);
+    }
+  }, [startDay, endDay]);
+
   return (
     <div className="weekly-summary-view">
       {/* 기간 필터 */}
@@ -169,6 +215,15 @@ export default function WeeklySummaryView({ items, onSelectDate }: WeeklySummary
               ))}
             </select>
           </div>
+          <label className="weekly-persist-checkbox" title="체크 시 기간 설정을 기억합니다">
+            <input
+              type="checkbox"
+              checked={persistRange}
+              onChange={(e) => handleTogglePersist(e.target.checked)}
+            />
+            <span className="weekly-persist-checkmark" />
+            <span className="weekly-persist-label">설정 저장</span>
+          </label>
         </div>
       </div>
 
