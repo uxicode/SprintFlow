@@ -396,5 +396,16 @@
     "notes": "",
     "location": "",
     "completed": true
+  },
+  {
+    "id": "todo-1787557811895-0x3ow",
+    "title": "프로토타입 서비스",
+    "date": "2026-08-24",
+    "startHour": 16.75,
+    "endHour": 17.75,
+    "category": "할 일",
+    "color": "#3b82f6",
+    "notes": "",
+    "location": ""
   }
 ]
