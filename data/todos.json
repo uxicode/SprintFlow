@@ -373,5 +373,16 @@
     "notes": "",
     "location": "",
     "completed": true
+  },
+  {
+    "id": "todo-1787540604371-e3ywo",
+    "title": "AI 툴 의견 취합",
+    "date": "2026-08-24",
+    "startHour": 14.5,
+    "endHour": 15,
+    "category": "할 일",
+    "color": "#3b82f6",
+    "notes": "",
+    "location": ""
   }
 ]
