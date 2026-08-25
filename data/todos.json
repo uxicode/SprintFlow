@@ -407,5 +407,16 @@
     "color": "#3b82f6",
     "notes": "",
     "location": ""
+  },
+  {
+    "id": "todo-1787647321374-uqqln",
+    "title": "본인인증배포, 웹사이트 배포",
+    "date": "2026-08-25",
+    "startHour": 16,
+    "endHour": 17,
+    "category": "할 일",
+    "color": "#3b82f6",
+    "notes": "",
+    "location": ""
   }
 ]
