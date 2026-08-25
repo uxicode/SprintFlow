@@ -418,5 +418,16 @@
     "color": "#3b82f6",
     "notes": "",
     "location": ""
+  },
+  {
+    "id": "todo-1787647610187-mxbvc",
+    "title": "일정체크",
+    "date": "2026-08-25",
+    "startHour": 11,
+    "endHour": 12,
+    "category": "할 일",
+    "color": "#3b82f6",
+    "notes": "",
+    "location": ""
   }
 ]
