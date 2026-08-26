@@ -77,8 +77,11 @@ export default function ReportSection() {
     handleCopyReport,
     handleDownloadReport,
     handlePublishConfluence,
+    handleUpdateWeeklyExcel,
     isDownloading,
+    isUpdatingExcel,
   } = useReportActions();
+  const excelFileInputRef = useRef<HTMLInputElement>(null);
 
   // 저장 (상태 변경 시)
   const handleKeywordChange = (value: string) => {
@@ -146,35 +149,37 @@ export default function ReportSection() {
   };
 
   useEffect(() => {
-    if (!isDownloading) return;
+    if (!isDownloading && !isUpdatingExcel) return;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = previousOverflow;
     };
-  }, [isDownloading]);
+  }, [isDownloading, isUpdatingExcel]);
 
   const processedWeeklyMd = applyWeeklyReportFilter(weeklyReportMd, searchKeyword, tagFilters, epicSortOrder);
 
   return (
     <GenieDockWrapper sectionId="report">
       <section className={`report-section card ${isCollapsed ? 'collapsed' : ''}`}>
-        {isDownloading && (
+        {(isDownloading || isUpdatingExcel) && (
           <div
             className="report-download-overlay"
             role="alertdialog"
             aria-modal="true"
             aria-busy="true"
             aria-live="polite"
-            aria-label="주간 업무 보고서 다운로드 중"
+            aria-label={isUpdatingExcel ? '주간 업무 엑셀 업데이트 중' : '주간 업무 보고서 다운로드 중'}
           >
             <div className="report-download-overlay__panel card">
               <div className="analytics-spinner" />
               <p className="report-download-overlay__message">
-                주간 업무 보고서를 생성하는 중입니다...
+                {isUpdatingExcel ? '주간 업무 엑셀을 업데이트하는 중입니다...' : '주간 업무 보고서를 생성하는 중입니다...'}
               </p>
               <p className="report-download-overlay__hint">
-                일정 데이터를 불러와 에픽 진행률을 계산하고 있습니다. 잠시만 기다려 주세요.
+                {isUpdatingExcel
+                  ? '전주 진척사항과 금주 예정사항에 주간 업무를 반영하고 있습니다.'
+                  : '일정 데이터를 불러와 에픽 진행률을 계산하고 있습니다. 잠시만 기다려 주세요.'}
               </p>
               <div className="report-download-progress" aria-hidden="true">
                 <div className="report-download-progress__bar" />
@@ -185,16 +190,16 @@ export default function ReportSection() {
 
         <div className="report-tabs-header">
           <div className="tabs">
-            <TabButton isActive={activeTab === 'tab-daily'} onClick={() => handleTabChange('tab-daily')} disabled={isDownloading}>
+            <TabButton isActive={activeTab === 'tab-daily'} onClick={() => handleTabChange('tab-daily')} disabled={isDownloading || isUpdatingExcel}>
               일일 업무
             </TabButton>
-            <TabButton isActive={activeTab === 'tab-weekly'} onClick={() => handleTabChange('tab-weekly')} disabled={isDownloading}>
+            <TabButton isActive={activeTab === 'tab-weekly'} onClick={() => handleTabChange('tab-weekly')} disabled={isDownloading || isUpdatingExcel}>
               주간 업무
             </TabButton>
-            <TabButton isActive={activeTab === 'tab-raw'} onClick={() => handleTabChange('tab-raw')} disabled={isDownloading}>
+            <TabButton isActive={activeTab === 'tab-raw'} onClick={() => handleTabChange('tab-raw')} disabled={isDownloading || isUpdatingExcel}>
               조회된 티켓 목록
             </TabButton>
-            <TabButton isActive={activeTab === 'tab-schedule'} onClick={() => handleTabChange('tab-schedule')} disabled={isDownloading}>
+            <TabButton isActive={activeTab === 'tab-schedule'} onClick={() => handleTabChange('tab-schedule')} disabled={isDownloading || isUpdatingExcel}>
               🗓️ 일정관리
             </TabButton>
           </div>
@@ -203,7 +208,7 @@ export default function ReportSection() {
               onCopy={() => handleCopyReport(searchKeyword, tagFilters, epicSortOrder)}
               onDownload={() => handleDownloadReport(searchKeyword, tagFilters, epicSortOrder)}
               onPublishConfluence={() => handlePublishConfluence(searchKeyword, tagFilters, epicSortOrder)}
-              disabled={isDownloading}
+              disabled={isDownloading || isUpdatingExcel}
             />
             <button
               type="button"
@@ -271,6 +276,29 @@ export default function ReportSection() {
                       <option value="due_date_desc">📅 마감일 여유순</option>
                     </select>
                   </div>
+                </div>
+
+                <div className="weekly-excel-actions">
+                  <input
+                    ref={excelFileInputRef}
+                    type="file"
+                    accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    className="weekly-excel-file-input"
+                    aria-label="주간 업무 엑셀 문서 선택"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleUpdateWeeklyExcel(file);
+                      e.target.value = '';
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    disabled={isDownloading || isUpdatingExcel}
+                    onClick={() => excelFileInputRef.current?.click()}
+                  >
+                    엑셀 업로드
+                  </button>
                 </div>
 
                 {/* 태그 칩(Chip) 필터 영역 */}

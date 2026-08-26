@@ -7,6 +7,7 @@ import { parseMarkdownToHtml } from '../utils/markdown';
 import { buildWeeklyDownloadMarkdown } from '../utils/reportDownload';
 import { applyWeeklyReportFilter } from '../utils/jira';
 import { fetchScheduleBundle } from '../lib/jira-fetchers';
+import { buildWeeklyExcelPayload } from '../utils/weeklyExcelData';
 import { queryKeys } from '../lib/query-keys';
 import { useDashboardData } from './use-dashboard-data';
 import {
@@ -33,6 +34,7 @@ interface ConfluencePublishRequestBody {
 export function useReportActions() {
   const [isPublishing, setIsPublishing] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isUpdatingExcel, setIsUpdatingExcel] = useState(false);
   const queryClient = useQueryClient();
   const activeTab = useTypedUiStore((s) => s.activeTab);
   const setActiveTab = useTypedUiStore((s) => s.setActiveTab);
@@ -53,7 +55,7 @@ export function useReportActions() {
   const { tickets, nextTickets } = useDashboardData();
 
   const handleTabChange = (tab: ActiveTab): void => {
-    if (isDownloading) return;
+    if (isDownloading || isUpdatingExcel) return;
     setActiveTab(tab);
   };
 
@@ -151,6 +153,53 @@ export function useReportActions() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(blobUrl);
+  };
+
+  const handleUpdateWeeklyExcel = async (file: File): Promise<void> => {
+    if (isDownloading || isUpdatingExcel) return;
+    if (!tickets.length && !nextTickets.length) {
+      alert('업데이트할 주간 업무 데이터가 없습니다. 먼저 티켓을 조회해 주세요.');
+      return;
+    }
+
+    setIsUpdatingExcel(true);
+    try {
+      const payload = buildWeeklyExcelPayload(
+        tickets,
+        nextTickets,
+        dateStart,
+        dateEnd,
+      );
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('payload', JSON.stringify(payload));
+
+      const response = await fetch('/api/weekly-excel', {
+        method: 'POST',
+        body: formData,
+      });
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
+        throw new Error(errorBody.error || `엑셀 업데이트 실패 (${response.status})`);
+      }
+
+      const blob = await response.blob();
+      const downloadName = file.name.replace(/\.xlsx$/i, '_updated.xlsx');
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.setAttribute('download', downloadName);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      alert(`[엑셀 업데이트 실패]\n\n${message}`);
+    } finally {
+      setIsUpdatingExcel(false);
+    }
   };
 
   const handlePublishConfluence = async (
@@ -267,7 +316,9 @@ export function useReportActions() {
     handleCopyReport,
     handleDownloadReport,
     handlePublishConfluence,
+    handleUpdateWeeklyExcel,
     isPublishing,
     isDownloading,
+    isUpdatingExcel,
   };
 }

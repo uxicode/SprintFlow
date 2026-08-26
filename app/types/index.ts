@@ -422,6 +422,13 @@ export interface BuildWeeklyDownloadParams {
   tagFilters?: WeeklyReportTagFilters;
 }
 
+export interface WeeklyExcelPayload {
+  dateStart: string;
+  dateEnd: string;
+  previousWeekText: string;
+  nextWeekPlanText: string;
+}
+
 export interface TicketFormatOptions {
   showStatus?: boolean;
   showUpdate?: boolean;

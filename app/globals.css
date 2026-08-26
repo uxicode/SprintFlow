@@ -3131,6 +3131,17 @@ select.select-input:focus {
   gap: 0.65rem;
 }
 
+.weekly-excel-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.weekly-excel-file-input {
+  display: none;
+}
+
 .weekly-filter-controls .epic-search-bar-container {
   padding: 0;
   background: transparent;
