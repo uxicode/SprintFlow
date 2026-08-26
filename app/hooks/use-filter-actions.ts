@@ -1,13 +1,14 @@
 'use client';
 
 import { useMemo } from 'react';
-import { buildJql } from '../utils/jqlHelpers';
+import { buildJql, resolveAssignees } from '../utils/jqlHelpers';
 import { useDashboardData } from './use-dashboard-data';
-import { useTypedFilterStore, useTypedUiStore } from './typed-stores';
+import { useTypedFilterStore, useTypedSettingsStore, useTypedUiStore } from './typed-stores';
 
 export function useFilterActions() {
   const isFilterOpen = useTypedUiStore((s) => s.isFilterOpen);
   const setFilterOpen = useTypedUiStore((s) => s.setFilterOpen);
+  const registeredMembers = useTypedSettingsStore((s) => s.registeredMembers);
   const projectKey = useTypedFilterStore((s) => s.projectKey);
   const teamMembers = useTypedFilterStore((s) => s.teamMembers);
   const dateStart = useTypedFilterStore((s) => s.dateStart);
@@ -22,7 +23,8 @@ export function useFilterActions() {
   );
   const { isLoading, refetchDashboard } = useDashboardData();
 
-  const getJql = (): string => buildJql(projectKey, teamMembers, dateStart, dateEnd);
+  const getJql = (): string =>
+    buildJql(projectKey, resolveAssignees(teamMembers, registeredMembers), dateStart, dateEnd);
 
   const handleFetchTickets = async (e?: React.FormEvent): Promise<void> => {
     if (e) e.preventDefault();

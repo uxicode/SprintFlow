@@ -24,6 +24,7 @@ export function useAnalyticsData(): {
   const url = useTypedSettingsStore((s) => s.url);
   const email = useTypedSettingsStore((s) => s.email);
   const token = useTypedSettingsStore((s) => s.token);
+  const registeredMembers = useTypedSettingsStore((s) => s.registeredMembers);
   const analyticsProjectKey = useTypedFilterStore((s) => s.analyticsProjectKey);
   const analyticsTeamMembers = useTypedFilterStore((s) => s.analyticsTeamMembers);
   const analyticsDateStart = useTypedFilterStore((s) => s.analyticsDateStart);
@@ -42,6 +43,7 @@ export function useAnalyticsData(): {
       apiMode,
       credentials: { url, email, token },
       filter,
+      registeredMembers,
     }),
     enabled: isConfigLoaded
       && isStatsJqlOpen

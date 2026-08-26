@@ -30,7 +30,8 @@ import {
   filterTicketsByDateRange,
   sumChartCompletedTotal,
 } from '../utils/analytics';
-import { buildAnalyticsJql } from '../utils/jqlHelpers';
+import { buildAnalyticsJql, resolveAssignees } from '../utils/jqlHelpers';
+import { useTypedSettingsStore } from '../hooks/typed-stores';
 import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import FormField from './FormField';
 import SummaryMetricCard from './SummaryMetricCard';
@@ -121,6 +122,7 @@ export default function PerformanceAnalytics({
   onFetch,
   isLoading
 }: PerformanceAnalyticsProps) {
+  const registeredMembers = useTypedSettingsStore((s) => s.registeredMembers);
   const [viewMode, setViewMode] = useState('trend');
   const [chartType, setChartType] = useState('line');
   const [periodPreset, setPeriodPreset] = useState<number | 'custom'>(1);
@@ -151,8 +153,13 @@ export default function PerformanceAnalytics({
   }, [periodTickets, excludedTicketKeys]);
 
   const analyticsJql = useMemo(() => {
-    return buildAnalyticsJql(projectKey, teamMembers, dateStart, dateEnd);
-  }, [projectKey, teamMembers, dateStart, dateEnd]);
+    return buildAnalyticsJql(
+      projectKey,
+      resolveAssignees(teamMembers, registeredMembers),
+      dateStart,
+      dateEnd,
+    );
+  }, [projectKey, teamMembers, registeredMembers, dateStart, dateEnd]);
 
   const analysis = useMemo(() => {
     return analyzeMonthlyPerformance(activeTickets);

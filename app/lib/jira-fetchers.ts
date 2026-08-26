@@ -3,7 +3,7 @@ import { JqlQueryBuilder, getVacationMembers } from '../utils/jira';
 import { fetchJiraTickets } from '../utils/jiraApi';
 import { generateMockTickets } from '../utils/mockTickets';
 import { fetchCalendarEvents } from '../utils/calendarApi';
-import { buildJql, buildNextWeekJql, buildScheduleJql, buildAnalyticsJql } from '../utils/jqlHelpers';
+import { buildJql, buildNextWeekJql, buildScheduleJql, buildAnalyticsJql, resolveAssignees } from '../utils/jqlHelpers';
 import { generateReports } from './generate-reports';
 import type {
   AnalyticsBundle,
@@ -35,11 +35,13 @@ export async function fetchDashboardBundle({
   const { projectKey, teamMembers, dateStart, dateEnd } = filter;
   const { nextStart, nextEnd } = getNextWeekRange(dateStart, dateEnd);
   const thisYear = dayjs().year();
+  const assignees = resolveAssignees(teamMembers, registeredMembers);
+  const assigneesStr = assignees.join(', ');
 
   if (!apiMode) {
-    const mockTickets = generateMockTickets(projectKey, teamMembers, dateStart, dateEnd);
-    const mockNextTickets = generateMockTickets(projectKey, teamMembers, nextStart, nextEnd);
-    const mockScheduleTickets = generateMockTickets(projectKey, teamMembers, `${thisYear}-01-01`, `${thisYear}-12-31`);
+    const mockTickets = generateMockTickets(projectKey, assigneesStr, dateStart, dateEnd);
+    const mockNextTickets = generateMockTickets(projectKey, assigneesStr, nextStart, nextEnd);
+    const mockScheduleTickets = generateMockTickets(projectKey, assigneesStr, `${thisYear}-01-01`, `${thisYear}-12-31`);
     const vacationMembers = ['이영희'];
     const reports = generateReports({
       currList: mockTickets,
@@ -63,9 +65,30 @@ export async function fetchDashboardBundle({
     };
   }
 
-  const jql = buildJql(projectKey, teamMembers, dateStart, dateEnd);
-  const nextJql = buildNextWeekJql(projectKey, teamMembers, dateStart, dateEnd);
-  const scheduleJql = buildScheduleJql(projectKey, teamMembers);
+  if (assignees.length === 0) {
+    onProgress?.({ dot: 'accent', text: '조회 대상 팀원이 없습니다 — 설정에서 팀원을 등록해 주세요.' });
+    return {
+      tickets: [],
+      nextTickets: [],
+      calendarEvents: [],
+      calendarMeta: null,
+      reports: generateReports({
+        currList: [],
+        nextList: [],
+        start: dateStart,
+        end: dateEnd,
+        proj: projectKey,
+        rawEvents: [],
+        targetRegs: registeredMembers,
+        jiraUrl: credentials.url,
+      }),
+      statusText: '조회 대상 팀원이 없습니다 — 설정에서 팀원을 등록해 주세요.',
+    };
+  }
+
+  const jql = buildJql(projectKey, assignees, dateStart, dateEnd);
+  const nextJql = buildNextWeekJql(projectKey, assignees, dateStart, dateEnd);
+  const scheduleJql = buildScheduleJql(projectKey, assignees);
 
   onProgress?.({ dot: 'success', text: '이번 주 데이터 로드 중...' });
   const tickets = await fetchJiraTickets(jql, credentials.url, credentials.email, credentials.token, onProgress);
@@ -129,16 +152,20 @@ export async function fetchAnalyticsBundle({
   apiMode,
   credentials,
   filter,
+  registeredMembers,
 }: FetchAnalyticsBundleParams): Promise<AnalyticsBundle> {
   const { analyticsProjectKey, analyticsTeamMembers, analyticsDateStart, analyticsDateEnd } = filter;
-  const jql = buildAnalyticsJql(analyticsProjectKey, analyticsTeamMembers, analyticsDateStart, analyticsDateEnd);
+  const assignees = resolveAssignees(analyticsTeamMembers, registeredMembers);
+  const jql = buildAnalyticsJql(analyticsProjectKey, assignees, analyticsDateStart, analyticsDateEnd);
 
   if (!apiMode) {
     return {
-      tickets: generateMockTickets(analyticsProjectKey, analyticsTeamMembers, analyticsDateStart, analyticsDateEnd),
+      tickets: generateMockTickets(analyticsProjectKey, assignees.join(', '), analyticsDateStart, analyticsDateEnd),
       jql,
     };
   }
+
+  if (assignees.length === 0) return { tickets: [], jql };
 
   const tickets = await fetchJiraTickets(jql, credentials.url, credentials.email, credentials.token);
   return { tickets, jql };
@@ -148,17 +175,21 @@ export async function fetchScheduleBundle({
   apiMode,
   credentials,
   filter,
+  registeredMembers,
 }: FetchScheduleBundleParams): Promise<ScheduleBundle> {
   const { projectKey, teamMembers } = filter;
-  const jql = buildScheduleJql(projectKey, teamMembers);
+  const assignees = resolveAssignees(teamMembers, registeredMembers);
+  const jql = buildScheduleJql(projectKey, assignees);
 
   if (!apiMode) {
     const thisYear = dayjs().year();
     return {
-      tickets: generateMockTickets(projectKey, teamMembers, `${thisYear}-01-01`, `${thisYear}-12-31`),
+      tickets: generateMockTickets(projectKey, assignees.join(', '), `${thisYear}-01-01`, `${thisYear}-12-31`),
       jql,
     };
   }
+
+  if (assignees.length === 0) return { tickets: [], jql };
 
   const tickets = await fetchJiraTickets(jql, credentials.url, credentials.email, credentials.token);
   return { tickets, jql };
