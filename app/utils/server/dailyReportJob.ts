@@ -2,7 +2,6 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import { JqlQueryBuilder, DailyReportStrategy, ReportContext } from '../jira';
-import { resolveAssignees } from '../jqlHelpers';
 import { getCronConfig, validateCronConfig } from './config';
 import { fetchJiraTicketsServer } from './jira';
 import { fetchCalendarEventsServer } from './calendar';
@@ -37,20 +36,15 @@ export async function runDailyReportJob(): Promise<DailyReportJobResult> {
   const nextEnd = dayjs(end).add(7, 'day').format('YYYY-MM-DD');
   const todayLabel = dayjs().tz(config.timezone).format('YYYY.MM.DD');
 
-  const assignees = resolveAssignees(config.teamMembers, config.registeredMembers);
-  if (assignees.length === 0) {
-    throw new Error('조회 대상 팀원이 없습니다. TEAM_MEMBERS 또는 REGISTERED_MEMBERS를 설정해 주세요.');
-  }
-
   const currentJql = new JqlQueryBuilder()
     .setProject(config.projectKey)
-    .setAssignees(assignees)
+    .setAssignees(config.teamMembers)
     .setDateRange(start, end, 'updated')
     .build();
 
   const nextJql = new JqlQueryBuilder()
     .setProject(config.projectKey)
-    .setAssignees(assignees)
+    .setAssignees(config.teamMembers)
     .setDateRange(nextStart, nextEnd, 'updated')
     .build();
 

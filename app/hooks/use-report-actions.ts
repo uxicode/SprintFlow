@@ -106,7 +106,6 @@ export function useReportActions() {
               apiMode,
               credentials: { url, email, token },
               filter: scheduleFilter,
-              registeredMembers,
             }),
             staleTime: 60_000,
           });

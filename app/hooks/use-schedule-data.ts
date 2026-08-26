@@ -20,7 +20,6 @@ export function useScheduleData(sortOrder: EpicSortOrder = 'latest'): { ganttDat
   const url = useTypedSettingsStore((s) => s.url);
   const email = useTypedSettingsStore((s) => s.email);
   const token = useTypedSettingsStore((s) => s.token);
-  const registeredMembers = useTypedSettingsStore((s) => s.registeredMembers);
   const projectKey = useTypedFilterStore((s) => s.projectKey);
   const teamMembers = useTypedFilterStore((s) => s.teamMembers);
 
@@ -34,7 +33,6 @@ export function useScheduleData(sortOrder: EpicSortOrder = 'latest'): { ganttDat
         apiMode,
         credentials: { url, email, token },
         filter,
-        registeredMembers,
       });
       setConnectionStatus({
         dot: 'success',

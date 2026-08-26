@@ -165,22 +165,6 @@ export const getVacationMembers = (
   return vacations;
 };
 
-/**
- * 등록된 팀원 명부 밖의 담당자 티켓을 보고서에서 제외합니다.
- * JQL 조건이 누락되는 등의 이유로 타 팀 티켓이 섞여 들어와도 보고서에는 노출되지 않습니다.
- */
-export const filterTicketsByRoster = (tickets: Ticket[], roster: string[]): Ticket[] => {
-  const registered = (roster ?? []).map(m => m.trim()).filter(Boolean);
-  if (registered.length === 0) return tickets;
-
-  const excluded = tickets.filter(t => !registered.includes(t.assignee));
-  if (excluded.length > 0) {
-    const names = [...new Set(excluded.map(t => t.assignee))];
-    console.warn('[Report] 등록된 팀원이 아니라 보고서에서 제외된 담당자:', names);
-  }
-  return tickets.filter(t => registered.includes(t.assignee));
-};
-
 // JQL 쿼리 빌더 클래스
 export class JqlQueryBuilder {
   project: string;
@@ -208,9 +192,13 @@ export class JqlQueryBuilder {
     return this;
   }
 
-  setAssignees(members: string | string[]): this {
-    const rawList = Array.isArray(members) ? members : (members ? members.split(',') : []);
-    this.assignees = rawList.map(m => m.trim()).filter(m => m.length > 0);
+  setAssignees(membersString: string): this {
+    if (membersString) {
+      this.assignees = membersString
+        .split(',')
+        .map(m => m.trim())
+        .filter(m => m.length > 0);
+    }
     return this;
   }
 
@@ -361,7 +349,7 @@ export class DailyReportStrategy extends ReportStrategy {
 
     // 진행 중 티켓은 오늘 갱신 여부와 무관하게 항상 노출(현재 작업 현황),
     // 그 외(완료 등)는 오늘 작업했거나 오늘 기한인 경우에만 노출
-    const dailyTickets = filterTicketsByRoster(currList, targetRegs).filter(t => {
+    const dailyTickets = currList.filter(t => {
       if (getStatusCategory(t.status) === 'In Progress') return true;
       return t.updated === todayStr || t.duedate === todayStr;
     });
@@ -436,7 +424,7 @@ export class WeeklyReportStrategy extends ReportStrategy {
       : [];
 
     // 기한(duedate)이 지정된 경우, 기한 날짜가 선택된 start ~ end 범위에 속하는 티켓만 엄격 선별
-    const filteredCurrList = filterTicketsByRoster(currList, targetRegs).filter(t => {
+    const filteredCurrList = currList.filter(t => {
       if (!t.duedate) return true;
       const due = dayjs(t.duedate).format('YYYY-MM-DD');
       return due >= start && due <= end;
@@ -535,13 +523,12 @@ export class WeeklyReportStrategy extends ReportStrategy {
     }
 
     weeklyMd += `## 🚀 4. 다음 주 할 일 목록 (주요 계획 및 이슈)\n\n`;
-    const filteredNextList = filterTicketsByRoster(nextList, targetRegs);
-    if (filteredNextList.length === 0) {
+    if (nextList.length === 0) {
       weeklyMd += `* **마일스톤 점검**: 다음 주 예정된 지라 티켓이 등록되어 있지 않거나 계획을 불러올 수 없습니다.\n`;
       weeklyMd += `* **장애 요인**: 예정된 주요 마일스톤에 지연 요소가 없는지 리스크 사전 점검.\n`;
     } else {
       const nextEpicsMap: Record<string, { key: string; summary: string; tickets: Ticket[] }> = {};
-      filteredNextList.forEach(t => {
+      nextList.forEach(t => {
         const epicKey = t.epic ? t.epic.key : 'NO_EPIC';
         const epicSummary = t.epic ? t.epic.summary : '에픽 없음 (기타 계획)';
         if (!nextEpicsMap[epicKey]) {

@@ -321,14 +321,12 @@ export interface FetchAnalyticsBundleParams {
   apiMode: boolean;
   credentials: JiraCredentials;
   filter: AnalyticsFilter;
-  registeredMembers: string[];
 }
 
 export interface FetchScheduleBundleParams {
   apiMode: boolean;
   credentials: JiraCredentials;
   filter: ScheduleFilter;
-  registeredMembers: string[];
 }
 
 export interface ExchangeCalendarOAuthParams {
