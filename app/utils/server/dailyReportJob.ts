@@ -36,15 +36,16 @@ export async function runDailyReportJob(): Promise<DailyReportJobResult> {
   const nextEnd = dayjs(end).add(7, 'day').format('YYYY-MM-DD');
   const todayLabel = dayjs().tz(config.timezone).format('YYYY.MM.DD');
 
+  const reportAssignees = config.registeredMembers.join(', ');
   const currentJql = new JqlQueryBuilder()
     .setProject(config.projectKey)
-    .setAssignees(config.teamMembers)
+    .setAssignees(reportAssignees)
     .setDateRange(start, end, 'updated')
     .build();
 
   const nextJql = new JqlQueryBuilder()
     .setProject(config.projectKey)
-    .setAssignees(config.teamMembers)
+    .setAssignees(reportAssignees)
     .setDateRange(nextStart, nextEnd, 'updated')
     .build();
 

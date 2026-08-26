@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { injectRegisteredMemberScope } from '../../utils/server/jqlMemberScope';
 
 function resolveAuthHeader(request: NextRequest): string | undefined {
   const authHeader = request.headers.get('authorization');
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
     return new NextResponse('Missing "url" query parameter', { status: 400 });
   }
 
-  const finalUrl = resolveTargetUrl(targetUrl);
+  const finalUrl = injectRegisteredMemberScope(resolveTargetUrl(targetUrl));
   const authHeader = resolveAuthHeader(request);
   
   const headers: Record<string, string> = {
@@ -75,7 +76,7 @@ export async function POST(request: NextRequest) {
     return new NextResponse('Missing "url" query parameter', { status: 400 });
   }
 
-  const finalUrl = resolveTargetUrl(targetUrl);
+  const finalUrl = injectRegisteredMemberScope(resolveTargetUrl(targetUrl));
   const authHeader = resolveAuthHeader(request);
   const bodyText = await request.text();
   
