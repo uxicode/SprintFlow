@@ -462,6 +462,7 @@
     "category": "할 일",
     "color": "#3b82f6",
     "notes": "",
-    "location": ""
+    "location": "",
+    "completed": true
   }
 ]
