@@ -451,5 +451,16 @@
     "color": "#3b82f6",
     "notes": "",
     "location": ""
+  },
+  {
+    "id": "todo-1787880780542-mtgte",
+    "title": "주간 업무 문서",
+    "date": "2026-08-28",
+    "startHour": 11,
+    "endHour": 12,
+    "category": "할 일",
+    "color": "#3b82f6",
+    "notes": "",
+    "location": ""
   }
 ]
