@@ -530,5 +530,16 @@
     "color": "#0d9488",
     "notes": "",
     "location": ""
+  },
+  {
+    "id": "todo-1788318401672-h4nen",
+    "title": "[줌미팅] 이지케어텍/ 비일만시 교육",
+    "date": "2026-09-02",
+    "startHour": 16,
+    "endHour": 17,
+    "category": "일정",
+    "color": "#0d9488",
+    "notes": "",
+    "location": ""
   }
 ]
