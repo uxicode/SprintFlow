@@ -541,5 +541,16 @@
     "color": "#0d9488",
     "notes": "",
     "location": ""
+  },
+  {
+    "id": "todo-1788395300275-5pv10",
+    "title": "일정 체크",
+    "date": "2026-09-03",
+    "startHour": 9,
+    "endHour": 10,
+    "category": "할 일",
+    "color": "#3b82f6",
+    "notes": "",
+    "location": ""
   }
 ]
