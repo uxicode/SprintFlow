@@ -596,5 +596,16 @@
     "color": "#0d9488",
     "notes": "",
     "location": ""
+  },
+  {
+    "id": "todo-1788750362127-46saz",
+    "title": "주간 경영회의",
+    "date": "2026-09-07",
+    "startHour": 13,
+    "endHour": 14,
+    "category": "일정",
+    "color": "#0d9488",
+    "notes": "",
+    "location": ""
   }
 ]
