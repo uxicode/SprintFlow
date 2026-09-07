@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { parseVacationEvent } from '../../../utils/jira';
+import { getRegisteredMembers } from '../../../utils/server/jqlMemberScope';
 
 /**
  * Google Calendar 이벤트 조회 & 토큰 교환/갱신 API
@@ -153,6 +155,23 @@ async function fetchCalendarEvents(
 }
 
 
+interface CalendarEventItem {
+  summary?: string;
+}
+
+function scopeVacationEvents(items: unknown[] | undefined): unknown[] {
+  const events = items || [];
+  const roster = getRegisteredMembers();
+  if (roster.length === 0) return events;
+
+  return events.filter((item) => {
+    const summary = (item as CalendarEventItem).summary || '';
+    const { isVacation, name } = parseVacationEvent(summary);
+    if (!isVacation || !name) return true;
+    return roster.includes(name);
+  });
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as CalendarEventsRequestBody;
@@ -231,11 +250,17 @@ export async function POST(request: NextRequest) {
       const clientSecret = body.clientSecret || process.env.GOOGLE_CLIENT_SECRET?.trim();
       const { timeMin, timeMax } = body;
 
-      if (!calendarId || !timeMin || !timeMax) {
+      if (!timeMin || !timeMax) {
         return NextResponse.json(
-          { error: 'calendarId, timeMin, timeMax가 필요합니다.' },
+          { error: 'timeMin, timeMax가 필요합니다.' },
           { status: 400 }
         );
+      }
+
+      // 배포 환경은 클라이언트에 캘린더 값을 내려주지 않는다.
+      // env에 calendarId/토큰이 없으면 조회를 건너뛰고 빈 목록을 반환한다.
+      if (!calendarId || (!accessToken && !refreshToken)) {
+        return NextResponse.json({ items: [] });
       }
 
       let currentAccessToken = accessToken;
@@ -263,7 +288,7 @@ export async function POST(request: NextRequest) {
       try {
         const data = await fetchCalendarEvents(currentAccessToken, calendarId, timeMin, timeMax);
         return NextResponse.json({
-          items: data.items || [],
+          items: scopeVacationEvents(data.items),
           newAccessToken: currentAccessToken !== accessToken ? currentAccessToken : null,
         });
       } catch (fetchErr) {
@@ -274,7 +299,7 @@ export async function POST(request: NextRequest) {
             const refreshed = await refreshAccessToken(refreshToken, clientId, clientSecret);
             const retryData = await fetchCalendarEvents(refreshed.access_token, calendarId, timeMin, timeMax);
             return NextResponse.json({
-              items: retryData.items || [],
+              items: scopeVacationEvents(retryData.items),
               newAccessToken: refreshed.access_token,
             });
           } catch (retryErr) {

@@ -19,22 +19,19 @@ export function resolveAppSettings(
   const confluenceParentId =
     (useEnvJira ? env.confluenceParentId : local.confluenceParentId) || local.confluenceParentId || '';
 
-  const calendarId =
-    (useEnvCalendar ? env.calendarId : local.calendarId) || local.calendarId || '';
-  const calendarClientId =
-    (useEnvCalendar ? env.googleClientId : local.calendarClientId) || local.calendarClientId || '';
-  const calendarClientSecret =
-    (useEnvCalendar ? env.googleClientSecret : local.calendarClientSecret) ||
-    local.calendarClientSecret ||
-    '';
-  const calendarRefreshToken =
-    (useEnvCalendar ? env.googleRefreshToken : local.calendarRefreshToken) ||
-    local.calendarRefreshToken ||
-    '';
-  const calendarAccessToken =
-    (useEnvCalendar ? env.googleAccessToken : local.calendarAccessToken) ||
-    local.calendarAccessToken ||
-    '';
+  // 배포 환경은 캘린더 값을 마스킹하므로, env가 있다고 판단되면 브라우저 저장값으로 덮지 않는다.
+  // 실제 CALENDAR_ID/토큰은 /api/calendar/events가 서버 env로 채운다.
+  const calendarId = useEnvCalendar ? (env?.calendarId || '') : (local.calendarId || '');
+  const calendarClientId = useEnvCalendar ? (env?.googleClientId || '') : (local.calendarClientId || '');
+  const calendarClientSecret = useEnvCalendar
+    ? (env?.googleClientSecret || '')
+    : (local.calendarClientSecret || '');
+  const calendarRefreshToken = useEnvCalendar
+    ? (env?.googleRefreshToken || '')
+    : (local.calendarRefreshToken || '');
+  const calendarAccessToken = useEnvCalendar
+    ? (env?.googleAccessToken || '')
+    : (local.calendarAccessToken || '');
 
   const hasJiraCredentials = !!useEnvJira || !!(url && email && token);
   const hasCalendarCredentials = !!useEnvCalendar || !!(

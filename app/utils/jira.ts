@@ -153,7 +153,8 @@ export const getVacationMembers = (
     if (isEventOverlapping(evt.start, evt.end, startDate, endDate)) {
       const { isVacation, name } = parseVacationEvent(evt.summary || '');
       if (isVacation && name) {
-        if (registered.includes(name) && !vacations.includes(name)) {
+        const isInRoster = registered.length === 0 || registered.includes(name);
+        if (isInRoster && !vacations.includes(name)) {
           vacations.push(name);
           console.log(`[Calendar] 연차 매칭 성공: ${name} (${evt.summary})`);
         }

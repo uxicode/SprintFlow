@@ -79,26 +79,24 @@ export async function fetchDashboardBundle({
   onProgress?.({ dot: 'success', text: '캘린더 연차 데이터 조회 중...' });
   let calendarEvents: DashboardBundle['calendarEvents'] = [];
   let calendarMeta: DashboardBundle['calendarMeta'] = null;
-  if (calendar.calendarId || calendar.accessToken || calendar.refreshToken) {
-    const result = await fetchCalendarEvents({
-      calId: calendar.calendarId,
-      start: dateStart,
-      end: dateEnd,
-      accessToken: calendar.accessToken,
-      refreshToken: calendar.refreshToken,
-      clientId: calendar.clientId,
-      clientSecret: calendar.clientSecret,
-    });
-    if (result.error) {
-      calendarMeta = {
-        error: result.error,
-        needReauth: result.needReauth,
-      };
-    } else {
-      calendarEvents = result.items;
-      if (result.newAccessToken) {
-        calendarMeta = { newAccessToken: result.newAccessToken };
-      }
+  const result = await fetchCalendarEvents({
+    calId: calendar.calendarId,
+    start: dateStart,
+    end: dateEnd,
+    accessToken: calendar.accessToken,
+    refreshToken: calendar.refreshToken,
+    clientId: calendar.clientId,
+    clientSecret: calendar.clientSecret,
+  });
+  if (result.error) {
+    calendarMeta = {
+      error: result.error,
+      needReauth: result.needReauth,
+    };
+  } else {
+    calendarEvents = result.items;
+    if (result.newAccessToken) {
+      calendarMeta = { newAccessToken: result.newAccessToken };
     }
   }
 

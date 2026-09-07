@@ -15,13 +15,6 @@ export async function fetchCalendarEvents({
   const timeMin = `${start}T00:00:00.000Z`;
   const timeMax = `${end}T23:59:59.000Z`;
 
-  if (!calId) return { items: [], error: null, needReauth: false, newAccessToken: null };
-
-  if (!accessToken && !refreshToken) {
-    console.warn('[Calendar OAuth] Access Token 또는 Refresh Token이 없습니다.');
-    return { items: [], error: null, needReauth: false, newAccessToken: null };
-  }
-
   try {
     console.log('[Calendar OAuth] 이벤트 조회 중...');
     const response = await fetch('/api/calendar/events', {
@@ -29,11 +22,11 @@ export async function fetchCalendarEvents({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'events',
-        accessToken,
-        refreshToken,
-        clientId,
-        clientSecret,
-        calendarId: calId,
+        accessToken: accessToken || undefined,
+        refreshToken: refreshToken || undefined,
+        clientId: clientId || undefined,
+        clientSecret: clientSecret || undefined,
+        calendarId: calId || undefined,
         timeMin,
         timeMax,
       }),
